@@ -523,4 +523,9 @@ app.get("/community", isloggedin, async (req, res) => {
 const Message = require('./models/message');
 
 const PORT = process.env.PORT || 3000;
+// --- ANDROID VERIFICATION ROUTE ---
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.sendFile(__dirname + '/public/assetlinks.json');
+});
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

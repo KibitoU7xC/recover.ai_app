@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.recoverai.app",
+      "sha256_cert_fingerprints": [
+        "B4:54:08:26:0A:B0:AC:6A:E3:E6:B5:8D:89:0B:32:4D:A6:2A:A0:A9:AA:74:51:01:A9:EF:D5:7D:71:C4:BC:90"
+      ]
+    }
+  }
+]
