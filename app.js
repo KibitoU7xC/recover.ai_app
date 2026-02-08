@@ -341,7 +341,7 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
   }
 });
 
-// --- DASHBOARD ROUTE (SINGLE DAY | IST MIDNIGHT FIXED) ---
+// --- DASHBOARD ROUTE (ONE PARTICULAR DAY | IST ONLY) ---
 app.get("/dashboard", isloggedin, async (req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
 
@@ -356,25 +356,24 @@ app.get("/dashboard", isloggedin, async (req, res) => {
     isConnected: false,
   };
 
-  // ---------- FUNCTION: IST MIDNIGHT ----------
-  function getISTMidnight() {
-    const now = new Date();
-    const istOffsetMs = 5.5 * 60 * 60 * 1000; // IST offset
-    const istNow = new Date(now.getTime() + istOffsetMs);
-    istNow.setHours(0, 0, 0, 0); // IST midnight
-    return istNow.getTime() - istOffsetMs; // back to UTC
+  // ---------- IST MIDNIGHT (UTC TIMESTAMP) ----------
+  function getISTMidnightUTC(date = new Date()) {
+    const istOffsetMs = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(date.getTime() + istOffsetMs);
+    istDate.setHours(0, 0, 0, 0);      // 12:00 AM IST
+    return istDate.getTime() - istOffsetMs;
   }
 
   if (googleToken) {
     try {
       graphData.isConnected = true;
 
-      // ---------- TIME RANGE: TODAY (IST) ----------
-      const startTime = getISTMidnight(); // 12:00 AM IST
-      const endTime = Date.now();          // now
+      // 🔑 ONE FULL INDIAN DAY
+      const startTime = getISTMidnightUTC();                    // 12:00 AM IST
+      const endTime = startTime + 24 * 60 * 60 * 1000;          // 11:59 PM IST
 
       // ============================
-      // 1️⃣ STEPS + CALORIES + SLEEP
+      // STEPS + CALORIES + SLEEP
       // ============================
       const response = await axios.post(
         "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
@@ -384,6 +383,9 @@ app.get("/dashboard", isloggedin, async (req, res) => {
             { dataTypeName: "com.google.calories.expended" },
             { dataTypeName: "com.google.sleep.segment" },
           ],
+          bucketByTime: {
+            durationMillis: 24 * 60 * 60 * 1000, // 👈 SINGLE DAY BUCKET
+          },
           startTimeMillis: startTime,
           endTimeMillis: endTime,
         },
@@ -392,7 +394,8 @@ app.get("/dashboard", isloggedin, async (req, res) => {
         }
       );
 
-      const datasets = response.data.bucket?.[0]?.dataset || [];
+      const bucket = response.data.bucket?.[0];
+      const datasets = bucket?.dataset || [];
 
       // ---------- STEPS ----------
       const stepDS = datasets.find(ds =>
@@ -417,7 +420,7 @@ app.get("/dashboard", isloggedin, async (req, res) => {
         );
       }
 
-      // ---------- SLEEP (OVERNIGHT HANDLED) ----------
+      // ---------- SLEEP ----------
       const sleepDS = datasets.find(ds =>
         ds.dataSourceId.includes("sleep.segment")
       );
@@ -431,13 +434,13 @@ app.get("/dashboard", isloggedin, async (req, res) => {
         });
       }
 
-      const sleepMinutes = Math.floor(totalSleepMillis / 1000 / 60);
+      const sleepMinutes = Math.floor(totalSleepMillis / 60000);
       const sleepHours = Math.floor(sleepMinutes / 60);
       const sleepMins = sleepMinutes % 60;
       graphData.todaySleep = `${sleepHours}h ${sleepMins}m`;
 
       // ============================
-      // 2️⃣ HEART RATE (LATEST VALUE)
+      // HEART RATE (LATEST IN DAY)
       // ============================
       const hrResponse = await axios.post(
         "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
@@ -462,6 +465,7 @@ app.get("/dashboard", isloggedin, async (req, res) => {
           break;
         }
       }
+
     } catch (err) {
       console.error(
         "Google Fit Error:",
@@ -476,7 +480,6 @@ app.get("/dashboard", isloggedin, async (req, res) => {
     googleToken,
   });
 });
-
 
 
 // --- GOOGLE AUTH ---
