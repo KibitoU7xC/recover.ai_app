@@ -1,12 +1,19 @@
 {
-  "appId": "com.recover.ai",
+  "appId": "com.recoverai.app",
   "appName": "RecoverAI",
   "webDir": "public",
   "server": {
-    "url": "https://recover-ai-mobile.onrender.com", 
-    "cleartext": true
+    "url": "https://recover-ai.onrender.com",
+    "cleartext": true,
+    "allowNavigation": [
+      "*.google.com",
+      "*.googleapis.com",
+      "*.gstatic.com",
+      "recover-ai.onrender.com"
+    ]
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": true,
+    "overrideUserAgent": "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
   }
 }
