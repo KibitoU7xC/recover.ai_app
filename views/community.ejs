@@ -220,17 +220,21 @@
         font-weight: 600;
       }
 
-      /* --- INPUT AREA --- */
+      /* --- INPUT AREA (FIXED FOR MOBILE) --- */
       .input-area {
-        padding: 1.5rem;
+        padding: 1rem; /* Slightly reduced padding for mobile */
         background: white;
         border-top: 1px solid #eee;
         display: flex;
-        gap: 1rem;
+        align-items: center; /* Center vertically */
+        gap: 10px; /* Consistent gap */
+        width: 100%;
       }
 
       .input-area input {
-        flex: 1;
+        flex: 1; /* Take all remaining space */
+        width: 0; /* CRITICAL: Allows flex to shrink it below its content size */
+        min-width: 0; /* Extra safety */
         padding: 12px 20px;
         border: 1px solid #ddd;
         border-radius: 30px;
@@ -243,14 +247,16 @@
       }
 
       .send-btn {
+        flex-shrink: 0; /* CRITICAL: Prevents button from being squished */
         background-color: var(--brand-blue);
         color: white;
         border: none;
-        padding: 0 24px;
+        padding: 12px 24px; /* Matches input height better */
         border-radius: 30px;
         cursor: pointer;
         font-weight: 600;
         transition: opacity 0.2s;
+        white-space: nowrap; /* Prevents text wrapping inside button */
       }
 
       .send-btn:hover {
@@ -259,8 +265,6 @@
     </style>
   </head>
   <body>
-  
-
     <div class="main-container">
       <div class="page-header">
         <h1>Community Room</h1>
@@ -372,27 +376,27 @@
         messagesArea.scrollTop = messagesArea.scrollHeight;
       });
     </script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
         // Check if running in Capacitor App
         if (window.Capacitor) {
-            const { App } = Capacitor.Plugins;
+          const { App } = Capacitor.Plugins;
 
-            App.addListener('backButton', async () => {
-                // Get the current page path (e.g., "/dashboard", "/food")
-                const path = window.location.pathname;
+          App.addListener("backButton", async () => {
+            // Get the current page path (e.g., "/dashboard", "/food")
+            const path = window.location.pathname;
 
-                // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
-                // usually Login and Dashboard are the "Home" pages
-                if (path === '/dashboard' || path === '/login' || path === '/') {
-                    App.exitApp();
-                } else {
-                    // For any other page (Food, Community, Chat), go back!
-                    window.history.back();
-                }
-            });
+            // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
+            // usually Login and Dashboard are the "Home" pages
+            if (path === "/dashboard" || path === "/login" || path === "/") {
+              App.exitApp();
+            } else {
+              // For any other page (Food, Community, Chat), go back!
+              window.history.back();
+            }
+          });
         }
-    });
-</script>
+      });
+    </script>
   </body>
 </html>
