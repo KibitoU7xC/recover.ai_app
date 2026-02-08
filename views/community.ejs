@@ -60,7 +60,8 @@
             <div class="messages-area" id="messagesArea">
                 <% if (messages && messages.length > 0) { %>
                     <% messages.forEach(msg => { %>
-                        <div class="message <%= msg.userid.toString() === user._id.toString() ? 'sent' : 'received' %>">
+                        <div class="message <%= (msg.userid && msg.userid.toString() === user._id.toString()) ? 'sent' : 'received' %>">
+
     <div class="bubble"><%= msg.text %></div>
     <div class="meta-info">
         <span><%= msg.username %></span> • 
