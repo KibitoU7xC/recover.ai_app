@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RecoverAI</string>
+    <string name="title_activity_main">RecoverAI</string>
+    <string name="package_name">com.recover.ai</string>
+    <string name="custom_url_scheme">com.recover.ai</string>
+</resources>

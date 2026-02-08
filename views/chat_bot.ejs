@@ -276,5 +276,24 @@
 
         
     </script>
+    <script>
+    // 1. Import the Capacitor App plugin logic
+    // We use a special trick to check if we are running in the app
+    const isApp = window.Capacitor !== undefined;
+
+    if (isApp) {
+        const { App } = Capacitor.Plugins;
+
+        App.addListener('backButton', ({ canGoBack }) => {
+            if (canGoBack) {
+                // If there's a page to go back to, go back!
+                window.history.back();
+            } else {
+                // If we are on the home page (no history), EXIT the app
+                App.exitApp();
+            }
+        });
+    }
+</script>
 </body>
 </html>
