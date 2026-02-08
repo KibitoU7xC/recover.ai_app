@@ -277,23 +277,27 @@
         
     </script>
     <script>
-    // 1. Import the Capacitor App plugin logic
-    // We use a special trick to check if we are running in the app
-    const isApp = window.Capacitor !== undefined;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check if running in Capacitor App
+        if (window.Capacitor) {
+            const { App } = Capacitor.Plugins;
 
-    if (isApp) {
-        const { App } = Capacitor.Plugins;
+            App.addListener('backButton', async () => {
+                // Get the current page path (e.g., "/dashboard", "/food")
+                const path = window.location.pathname;
 
-        App.addListener('backButton', ({ canGoBack }) => {
-            if (canGoBack) {
-                // If there's a page to go back to, go back!
-                window.history.back();
-            } else {
-                // If we are on the home page (no history), EXIT the app
-                App.exitApp();
-            }
-        });
-    }
+                // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
+                // usually Login and Dashboard are the "Home" pages
+                if (path === '/dashboard' || path === '/login' || path === '/') {
+                    App.exitApp();
+                } else {
+                    // For any other page (Food, Community, Chat), go back!
+                    window.history.back();
+                }
+            });
+        }
+    });
+</script>
 </script>
 </body>
 </html>

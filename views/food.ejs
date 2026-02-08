@@ -209,5 +209,27 @@
             }
         }
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check if running in Capacitor App
+        if (window.Capacitor) {
+            const { App } = Capacitor.Plugins;
+
+            App.addListener('backButton', async () => {
+                // Get the current page path (e.g., "/dashboard", "/food")
+                const path = window.location.pathname;
+
+                // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
+                // usually Login and Dashboard are the "Home" pages
+                if (path === '/dashboard' || path === '/login' || path === '/') {
+                    App.exitApp();
+                } else {
+                    // For any other page (Food, Community, Chat), go back!
+                    window.history.back();
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>
