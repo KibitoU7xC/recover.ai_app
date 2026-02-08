@@ -205,6 +205,31 @@
         });
     }
 </script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Only run this if we are in the App
+        if (window.Capacitor) {
+            const { App } = Capacitor.Plugins;
+
+            // LISTEN FOR DEEP LINKS (Google Login Redirects)
+            App.addListener('appUrlOpen', data => {
+                console.log('App opened with URL:', data.url);
+                
+                // If the URL is your Google Callback, force the app to go there
+                if (data.url.includes('/auth/google/callback')) {
+                    // We strip the "https://recover-ai.onrender.com" part if needed, 
+                    // or just set window.location.href to the full path.
+                    
+                    // Extract the path (e.g., /auth/google/callback?code=...)
+                    const slug = data.url.split(".com").pop();
+                    
+                    // Navigate!
+                    window.location.href = slug;
+                }
+            });
+        }
+    });
+</script>
 
 </body>
 </html>
