@@ -1,5 +1,12 @@
 {
   "appId": "com.recover.ai",
-  "appName": "recover.ai",
-  "webDir": "public"
+  "appName": "RecoverAI",
+  "webDir": "public",
+  "server": {
+    "url": "https://recover-ai-mobile.onrender.com", 
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
 }
