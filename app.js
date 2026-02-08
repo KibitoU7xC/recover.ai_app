@@ -522,25 +522,27 @@ io.on("connection", (socket) => {
 
   // Listen for 'chat message' from client
   socket.on("chat message", async (msg) => {
-    try {
-      // 1. Save message to MongoDB
-      const user = await userModel.findOne({ name: msg.sender });
-      if (user) {
-        const newMessage = new Message({
-          userid: user._id,
-          username: msg.sender,
-          text: msg.text,
-          time: msg.time, // Frontend sends the time string
-        });
-        await newMessage.save();
-      }
+  try {
+    const newMessage = new Message({
+      userid: msg.userid,       // ✅ USE USERID
+      username: msg.username,   // ✅ USE USERNAME
+      text: msg.text,
+    });
 
-      // 2. Broadcast message to everyone
-      io.emit("chat message", msg);
-    } catch (err) {
-      console.error("Error saving message:", err);
-    }
-  });
+    await newMessage.save();
+
+    // Broadcast saved message (with createdAt)
+    io.emit("chat message", {
+      userid: newMessage.userid.toString(),
+      username: newMessage.username,
+      text: newMessage.text,
+      createdAt: newMessage.createdAt,
+    });
+  } catch (err) {
+    console.error("Message save error:", err);
+  }
+});
+
 
   socket.on("disconnect", () => {
     console.log("User disconnected");
