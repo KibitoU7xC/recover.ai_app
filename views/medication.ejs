@@ -33,26 +33,67 @@
             <button class="add-btn" onclick="addReminder()">Add</button>
         </div>
 
-        <h3>Today's Schedule</h3>
+        <h3>Daily Schedule</h3>
         <ul id="reminderList" class="reminder-list">
             <div style="text-align: center; color: #999; margin-top: 20px;">Loading reminders...</div>
         </ul>
     </div>
 
     <script>
-        // Load Reminders on Page Load
-        document.addEventListener('DOMContentLoaded', loadReminders);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReminders();
+            requestPermissions(); // Ask for permission immediately
+        });
+
+        // --- NOTIFICATION LOGIC (DAILY) ---
+        
+        async function requestPermissions() {
+            if (window.Capacitor) {
+                const { LocalNotifications } = Capacitor.Plugins;
+                await LocalNotifications.requestPermissions();
+            }
+        }
+
+        async function scheduleNotification(id, medicineName, timeString) {
+            if (!window.Capacitor) return; // Only runs on phone
+
+            const { LocalNotifications } = Capacitor.Plugins;
+            
+            // 1. Get Hour and Minute from input
+            const [hours, minutes] = timeString.split(':').map(Number);
+
+            // 2. Schedule the alarm to repeat DAILY
+            await LocalNotifications.schedule({
+                notifications: [{
+                    title: "💊 Medication Reminder",
+                    body: `Time to take your ${medicineName}!`,
+                    // Create a unique numeric ID for the notification
+                    id: parseInt(id.substring(0, 8), 16) || Math.floor(Math.random() * 100000), 
+                    schedule: { 
+                        on: { hour: hours, minute: minutes }, // 👈 THIS MAKES IT REPEAT EVERY DAY
+                        allowWhileIdle: true 
+                    },
+                    sound: null,
+                    actionTypeId: "",
+                    extra: null
+                }]
+            });
+            
+            // alert(`Daily alarm set for ${timeString}`);
+        }
+
+        // --- DATABASE LOGIC ---
 
         async function loadReminders() {
             try {
-                const res = await fetch('/reminders/today'); // Using your existing API
+                const res = await fetch('/reminders/today');
                 const data = await res.json();
                 
                 const list = document.getElementById('reminderList');
-                list.innerHTML = ""; // Clear current list
+                list.innerHTML = ""; 
 
                 if (data.length === 0) {
-                    list.innerHTML = "<div style='text-align:center; color:#ccc;'>No reminders for today.</div>";
+                    list.innerHTML = "<div style='text-align:center; color:#ccc;'>No reminders set.</div>";
                     return;
                 }
 
@@ -62,7 +103,7 @@
                     li.innerHTML = `
                         <div class="reminder-info">
                             <strong>${rem.medicine}</strong>
-                            <span>⏰ ${rem.reminderTime}</span>
+                            <span>⏰ ${rem.reminderTime} (Daily)</span>
                         </div>
                         <button class="delete-btn" onclick="deleteReminder('${rem._id}')">&times;</button>
                     `;
@@ -87,8 +128,12 @@
                 });
 
                 if (res.ok) {
+                    // Schedule Notification on Phone
+                    const tempId = Date.now().toString(); 
+                    scheduleNotification(tempId, name, time);
+
                     document.getElementById('medName').value = "";
-                    loadReminders(); // Refresh list
+                    loadReminders(); 
                 } else {
                     alert("Failed to save reminder.");
                 }
@@ -102,33 +147,32 @@
             
             try {
                 await fetch(`/reminders/${id}`, { method: 'DELETE' });
+                // Note: This removes from DB/UI. 
+                // To remove the mobile notification perfectly, we would need to track the exact ID used.
                 loadReminders();
             } catch (err) {
                 console.error(err);
             }
         }
     </script>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Check if running in Capacitor App
         if (window.Capacitor) {
             const { App } = Capacitor.Plugins;
 
             App.addListener('backButton', async () => {
-                // Get the current page path (e.g., "/dashboard", "/food")
                 const path = window.location.pathname;
-
-                // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
-                // usually Login and Dashboard are the "Home" pages
+                // Exit app on these main pages
                 if (path === '/dashboard' || path === '/login' || path === '/') {
                     App.exitApp();
                 } else {
-                    // For any other page (Food, Community, Chat), go back!
+                    // Go back for sub-pages
                     window.history.back();
                 }
             });
         }
     });
-</script>
+    </script>
 </body>
 </html>
