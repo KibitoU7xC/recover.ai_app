@@ -341,7 +341,7 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
   }
 });
 
-// --- DASHBOARD ROUTE (FIXED FOR INDIA TIMEZONE) ---
+// --- DASHBOARD ROUTE (FIXED GOOGLE FIT LOGIC) ---
 app.get("/dashboard", isloggedin, async (req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
 
@@ -362,24 +362,11 @@ app.get("/dashboard", isloggedin, async (req, res) => {
     try {
       graphData.isConnected = true;
 
-      // 1. CALCULATE MIDNIGHT IN INDIA (IST is UTC+5:30)
-      // This ensures "Today" means "Today in India", not "Today in London"
-      const now = new Date();
-      const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 mins in milliseconds
-      
-      // Get current time in IST
-      const nowIST = new Date(now.getTime() + istOffset);
-      // Set to midnight IST
-      nowIST.setUTCHours(0, 0, 0, 0);
-      
-      // Convert back to UTC timestamp for Google API
-      const midnightIST_in_UTC = nowIST.getTime() - istOffset;
-      const endTime = Date.now(); // Right now
+      // ✅ SIMPLE & CORRECT TIME RANGE
+      const endTime = Date.now();
+      const startTime = endTime - 7 * 24 * 60 * 60 * 1000;
 
-      // For the 7-day graph
-      const sevenDaysAgo = midnightIST_in_UTC - (6 * 24 * 60 * 60 * 1000);
-
-      // --- QUERY 1: FETCH DATA ---
+      // ---------- QUERY 1 : HISTORY ----------
       const responseHistory = await axios.post(
         "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
         {
@@ -388,62 +375,91 @@ app.get("/dashboard", isloggedin, async (req, res) => {
             { dataTypeName: "com.google.calories.expended" },
             { dataTypeName: "com.google.sleep.segment" },
           ],
-          // We ask for daily buckets based on user's timezone start time
-          bucketByTime: { durationMillis: 86400000 }, 
-          startTimeMillis: sevenDaysAgo,
+          bucketByTime: { durationMillis: 86400000 },
+          startTimeMillis: startTime,
           endTimeMillis: endTime,
         },
         { headers: { Authorization: `Bearer ${googleToken}` } }
       );
 
-      const buckets = responseHistory.data.bucket;
-      if (buckets && buckets.length > 0) {
-        graphData.dates = [];
-        graphData.steps = [];
+      const buckets = responseHistory.data.bucket || [];
+      const todayStr = new Date().toISOString().split("T")[0];
 
-        buckets.forEach((bucket) => {
-          const date = new Date(parseInt(bucket.startTimeMillis));
-          graphData.dates.push(date.toLocaleDateString("en-US", { weekday: "short" }));
+      let todayBucket = null;
+      let totalSleepMillis = 0;
 
-          const stepDS = bucket.dataset.find((ds) => ds.dataSourceId.includes("step_count"));
-          let stepVal = 0;
-          if (stepDS && stepDS.point.length > 0) stepVal = stepDS.point[0].value[0].intVal;
-          graphData.steps.push(stepVal);
-        });
+      buckets.forEach((bucket) => {
+        const bucketDateStr = new Date(
+          parseInt(bucket.startTimeMillis)
+        ).toISOString().split("T")[0];
 
-        // --- GET TODAY'S TOTALS (The last bucket is 'Today') ---
-        const todayBucket = buckets[buckets.length - 1];
+        // ---------- GRAPH DATA ----------
+        graphData.dates.push(
+          new Date(bucket.startTimeMillis).toLocaleDateString("en-US", {
+            weekday: "short",
+          })
+        );
 
-        // A. Steps
-        const todayStepDS = todayBucket.dataset.find((ds) => ds.dataSourceId.includes("step_count"));
-        if (todayStepDS && todayStepDS.point.length > 0) {
-          graphData.todaySteps = todayStepDS.point[0].value[0].intVal;
+        const stepDS = bucket.dataset.find((ds) =>
+          ds.dataSourceId.includes("step_count")
+        );
+
+        let daySteps = 0;
+        if (stepDS) {
+          stepDS.point.forEach((p) => {
+            daySteps += p.value[0].intVal || 0;
+          });
+        }
+        graphData.steps.push(daySteps);
+
+        // ---------- IDENTIFY TODAY ----------
+        if (bucketDateStr === todayStr) {
+          todayBucket = bucket;
         }
 
-        // B. Calories
-        const todayCalDS = todayBucket.dataset.find((ds) => ds.dataSourceId.includes("calories"));
-        if (todayCalDS && todayCalDS.point.length > 0) {
-          graphData.todayCaloriesBurned = Math.round(todayCalDS.point[0].value[0].fpVal);
-        }
-
-        // C. Sleep
-        const todaySleepDS = todayBucket.dataset.find((ds) => ds.dataSourceId.includes("sleep"));
-        if (todaySleepDS && todaySleepDS.point.length > 0) {
-          let totalSleepMillis = 0;
-          todaySleepDS.point.forEach((p) => {
-            const start = parseInt(p.startTimeNanos) / 1000000;
-            const end = parseInt(p.endTimeNanos) / 1000000;
+        // ---------- SLEEP (SPANS MULTIPLE DAYS) ----------
+        const sleepDS = bucket.dataset.find((ds) =>
+          ds.dataSourceId.includes("sleep")
+        );
+        if (sleepDS) {
+          sleepDS.point.forEach((p) => {
+            const start = Number(p.startTimeNanos) / 1e6;
+            const end = Number(p.endTimeNanos) / 1e6;
             totalSleepMillis += end - start;
           });
+        }
+      });
 
-          const totalMinutes = Math.floor(totalSleepMillis / 1000 / 60);
-          const hours = Math.floor(totalMinutes / 60);
-          const mins = totalMinutes % 60;
-          graphData.todaySleep = `${hours}h ${mins}m`;
+      // ---------- TODAY TOTALS ----------
+      if (todayBucket) {
+        // Steps
+        const todayStepDS = todayBucket.dataset.find((ds) =>
+          ds.dataSourceId.includes("step_count")
+        );
+        if (todayStepDS) {
+          todayStepDS.point.forEach((p) => {
+            graphData.todaySteps += p.value[0].intVal || 0;
+          });
+        }
+
+        // Calories
+        const todayCalDS = todayBucket.dataset.find((ds) =>
+          ds.dataSourceId.includes("calories")
+        );
+        if (todayCalDS && todayCalDS.point.length > 0) {
+          graphData.todayCaloriesBurned = Math.round(
+            todayCalDS.point[0].value[0].fpVal || 0
+          );
         }
       }
 
-      // --- QUERY 2: INSTANT HEART RATE ---
+      // ---------- FINAL SLEEP FORMAT ----------
+      const sleepMinutes = Math.floor(totalSleepMillis / 1000 / 60);
+      const sleepHours = Math.floor(sleepMinutes / 60);
+      const sleepMins = sleepMinutes % 60;
+      graphData.todaySleep = `${sleepHours}h ${sleepMins}m`;
+
+      // ---------- QUERY 2 : HEART RATE ----------
       const responseInstant = await axios.post(
         "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
         {
@@ -455,14 +471,14 @@ app.get("/dashboard", isloggedin, async (req, res) => {
         { headers: { Authorization: `Bearer ${googleToken}` } }
       );
 
-      const instantBuckets = responseInstant.data.bucket;
-      if (instantBuckets && instantBuckets.length > 0) {
-        for (let i = instantBuckets.length - 1; i >= 0; i--) {
-          const ds = instantBuckets[i].dataset[0];
-          if (ds.point.length > 0) {
-            graphData.todayHeartRate = Math.round(ds.point[0].value[0].fpVal);
-            break;
-          }
+      const instantBuckets = responseInstant.data.bucket || [];
+      for (let i = instantBuckets.length - 1; i >= 0; i--) {
+        const ds = instantBuckets[i]?.dataset?.[0];
+        if (ds && ds.point.length > 0) {
+          graphData.todayHeartRate = Math.round(
+            ds.point[ds.point.length - 1].value[0].fpVal
+          );
+          break;
         }
       }
     } catch (error) {
@@ -476,6 +492,7 @@ app.get("/dashboard", isloggedin, async (req, res) => {
     googleToken: googleToken,
   });
 });
+
 
 // --- GOOGLE AUTH ---
 app.get("/auth/google", (req, res) => {
