@@ -1,402 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Recover.AI - Community</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
-
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet" />
     <style>
-      /* --- THEME VARIABLES (Matching your Dashboard) --- */
-      :root {
-        --brand-green: #2ecc71;
-        --brand-blue: #4285f4;
-        --bg-color: #f8f9fa;
-        --card-bg: #ffffff;
-        --text-dark: #333333;
-        --text-light: #777777;
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
-          0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        --radius: 16px;
-      }
+        /* --- STYLES (Kept exactly as you like them) --- */
+        :root { --brand-green: #2ecc71; --brand-blue: #4285f4; --bg-color: #f8f9fa; --card-bg: #ffffff; --text-dark: #333333; --text-light: #777777; --radius: 16px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); height: 100vh; display: flex; flex-direction: column; }
+        
+        /* NAVBAR (Mobile Compatible) */
+        .navbar { background-color: var(--card-bg); padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .logo { font-weight: 700; color: var(--brand-green); text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-link { text-decoration: none; color: var(--text-light); font-size: 0.9rem; }
+        .nav-link.active { color: var(--text-dark); font-weight: 600; border-bottom: 2px solid var(--brand-green); }
+        
+        @media (max-width: 768px) { .nav-links { display: none; } } /* Hide nav on mobile if you have bottom nav */
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family: "Segoe UI", sans-serif;
-      }
-
-      body {
-        background-color: var(--bg-color);
-        color: var(--text-dark);
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* --- NAVBAR --- */
-      .navbar {
-        background-color: var(--card-bg);
-        padding: 1rem 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-      }
-
-      .logo {
-        font-weight: 700;
-        font-size: 1.25rem;
-        color: var(--brand-green);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-decoration: none;
-      }
-
-      .nav-links {
-        display: flex;
-        gap: 30px;
-      }
-
-      .nav-link {
-        text-decoration: none;
-        color: var(--text-light);
-        font-weight: 500;
-        font-size: 0.95rem;
-        position: relative;
-        padding-bottom: 5px;
-        transition: color 0.2s;
-      }
-
-      .nav-link:hover {
-        color: var(--text-dark);
-      }
-
-      /* Active State for Community Tab */
-      .nav-link.active {
-        color: var(--text-dark);
-      }
-      .nav-link.active::after {
-        content: "";
-        position: absolute;
-        bottom: -21px;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background-color: var(--brand-green);
-      }
-
-      .profile-section {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-
-      .profile-icon {
-        background-color: #ff5252;
-        color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-
-      /* --- CHAT CONTAINER --- */
-      .main-container {
-        flex: 1;
-        max-width: 1200px;
-        margin: 0 auto;
-        width: 100%;
-        padding: 2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-
-      .page-header h1 {
-        font-size: 1.8rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .page-header p {
-        color: var(--text-light);
-      }
-
-      /* --- CHAT CARD UI --- */
-      .chat-card {
-        background: var(--card-bg);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        max-height: 70vh;
-      }
-
-      .chat-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .chat-header h3 {
-        font-size: 1.1rem;
-      }
-
-      .online-badge {
-        font-size: 0.85rem;
-        color: var(--brand-green);
-        background: #eafff3;
-        padding: 4px 12px;
-        border-radius: 20px;
-      }
-
-      /* --- MESSAGES AREA --- */
-      .messages-area {
-        flex: 1;
-        padding: 1.5rem;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        background-color: #fcfcfc;
-      }
-
-      .message {
-        max-width: 70%;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .message.received {
-        align-self: flex-start;
-      }
-      .message.sent {
-        align-self: flex-end;
-        align-items: flex-end;
-      }
-
-      .bubble {
-        padding: 12px 16px;
-        border-radius: 12px;
-        font-size: 0.95rem;
-        line-height: 1.4;
-        position: relative;
-      }
-
-      .message.received .bubble {
-        background-color: #f0f2f5;
-        color: var(--text-dark);
-        border-bottom-left-radius: 2px;
-      }
-
-      .message.sent .bubble {
-        background-color: var(--brand-green);
-        color: white;
-        border-bottom-right-radius: 2px;
-      }
-
-      .meta-info {
-        display: flex;
-        gap: 8px;
-        margin-top: 4px;
-        font-size: 0.75rem;
-        color: #999;
-      }
-
-      .sender-name {
-        font-weight: 600;
-      }
-
-      /* --- INPUT AREA (FIXED FOR MOBILE) --- */
-      .input-area {
-        padding: 1rem; /* Slightly reduced padding for mobile */
-        background: white;
-        border-top: 1px solid #eee;
-        display: flex;
-        align-items: center; /* Center vertically */
-        gap: 10px; /* Consistent gap */
-        width: 100%;
-      }
-
-      .input-area input {
-        flex: 1; /* Take all remaining space */
-        width: 0; /* CRITICAL: Allows flex to shrink it below its content size */
-        min-width: 0; /* Extra safety */
-        padding: 12px 20px;
-        border: 1px solid #ddd;
-        border-radius: 30px;
-        outline: none;
-        transition: border 0.3s;
-      }
-
-      .input-area input:focus {
-        border-color: var(--brand-green);
-      }
-
-      .send-btn {
-        flex-shrink: 0; /* CRITICAL: Prevents button from being squished */
-        background-color: var(--brand-blue);
-        color: white;
-        border: none;
-        padding: 12px 24px; /* Matches input height better */
-        border-radius: 30px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: opacity 0.2s;
-        white-space: nowrap; /* Prevents text wrapping inside button */
-      }
-
-      .send-btn:hover {
-        opacity: 0.9;
-      }
+        /* CHAT CONTAINER */
+        .main-container { flex: 1; max-width: 800px; margin: 0 auto; width: 100%; padding: 1rem; display: flex; flex-direction: column; }
+        .chat-card { background: white; border-radius: var(--radius); box-shadow: 0 4px 10px rgba(0,0,0,0.05); flex: 1; display: flex; flex-direction: column; overflow: hidden; height: 80vh; }
+        
+        /* MESSAGES AREA */
+        .messages-area { flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fcfcfc; }
+        .message { max-width: 75%; display: flex; flex-direction: column; }
+        .message.sent { align-self: flex-end; align-items: flex-end; }
+        .message.received { align-self: flex-start; }
+        
+        .bubble { padding: 10px 14px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
+        .message.sent .bubble { background-color: var(--brand-green); color: white; border-bottom-right-radius: 2px; }
+        .message.received .bubble { background-color: #f0f2f5; color: var(--text-dark); border-bottom-left-radius: 2px; }
+        
+        .meta-info { font-size: 0.7rem; color: #999; margin-top: 4px; display: flex; gap: 5px; }
+        
+        /* INPUT AREA */
+        .input-area { padding: 10px; background: white; border-top: 1px solid #eee; display: flex; gap: 10px; align-items: center; }
+        .input-area input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        .send-btn { background: var(--brand-blue); color: white; border: none; padding: 12px 20px; border-radius: 25px; font-weight: 600; cursor: pointer; }
     </style>
-  </head>
-  <body>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard" class="logo">Recover.AI</a>
+        <div class="nav-links">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/community" class="nav-link active">Community</a>
+        </div>
+        <a href="/logout" style="text-decoration: none; font-size: 1.2rem;">🚪</a>
+    </nav>
+
     <div class="main-container">
-      <div class="page-header">
-        <h1>Community Room</h1>
-        <p>Connect with others on their recovery journey.</p>
-      </div>
-
-      <div class="chat-card">
-        <div class="chat-header">
-          <h3>General Chat</h3>
-          <span class="online-badge">● Live</span>
-        </div>
-
-        <div class="messages-area" id="messagesArea">
-          <% if (typeof messages !== 'undefined' && messages.length > 0) { %> <%
-          messages.forEach(function(msg) { %>
-          <div
-            class="message <%= msg.sender === user.name ? 'sent' : 'received' %>"
-          >
-            <div class="bubble"><%= msg.text %></div>
-            <div class="meta-info">
-              <% if (msg.sender !== user.name) { %>
-              <span class="sender-name"><%= msg.sender %></span>
-              <% } %>
-              <span class="timestamp"><%= msg.time %></span>
+        <div class="chat-card">
+            <div style="padding: 15px; border-bottom: 1px solid #eee;">
+                <h3>Community Chat <span style="font-size: 0.8rem; color: var(--brand-green); background: #eafff3; padding: 2px 8px; border-radius: 10px;">● Live</span></h3>
             </div>
-          </div>
-          <% }); %> <% } else { %>
-          <div style="text-align: center; color: #ccc; margin-top: 20px">
-            No messages yet. Start the conversation!
-          </div>
-          <% } %>
-        </div>
 
-        <div class="input-area">
-          <input
-            type="text"
-            id="messageInput"
-            placeholder="Type a message..."
-            autocomplete="off"
-          />
-          <button class="send-btn" onclick="sendMessage()">Send</button>
+            <div class="messages-area" id="messagesArea">
+                <% if (messages && messages.length > 0) { %>
+                    <% messages.forEach(msg => { %>
+                        <div class="message <%= msg.sender === user.name ? 'sent' : 'received' %>">
+                            <div class="bubble"><%= msg.text %></div>
+                            <div class="meta-info">
+                                <span><%= msg.sender %></span> • <span><%= msg.time %></span>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div style="text-align: center; color: #ccc; margin-top: 20px;">No messages yet. Say hi! 👋</div>
+                <% } %>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" />
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
         </div>
-      </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io();
-      const messagesArea = document.getElementById("messagesArea");
-      const messageInput = document.getElementById("messageInput");
+        const socket = io(); // Connect to server
+        const messagesArea = document.getElementById("messagesArea");
+        const messageInput = document.getElementById("messageInput");
+        const myName = "<%= user.name %>"; // Valid EJS variable
 
-      // Pass the actual logged-in user's name from EJS to JS
-      const currentUserName = "<%= user.name %>";
+        // Auto-scroll to bottom
+        messagesArea.scrollTop = messagesArea.scrollHeight;
 
-      // Scroll to bottom on load
-      messagesArea.scrollTop = messagesArea.scrollHeight;
+        // Send Message Function
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
 
-      // Send on Enter key
-      messageInput.addEventListener("keypress", function (event) {
-        if (event.key === "Enter") {
-          sendMessage();
-        }
-      });
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      function sendMessage() {
-        const text = messageInput.value.trim();
-        if (text === "") return;
+            // 1. Send to Server
+            socket.emit("chat message", {
+                sender: myName,
+                text: text,
+                time: timeString
+            });
 
-        // Get formatted Time
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        // Emit to Server with REAL Name
-        socket.emit("chat message", {
-          text: text,
-          time: timeString,
-          sender: currentUserName,
-        });
-
-        // Clear Input
-        messageInput.value = "";
-      }
-
-      // Listen for incoming messages
-      socket.on("chat message", function (msg) {
-        const messageDiv = document.createElement("div");
-
-        // LOGIC: If I sent it, make it 'sent' (Right/Green). If someone else, 'received' (Left/Gray)
-        const isMe = msg.sender === currentUserName;
-        messageDiv.className = isMe ? "message sent" : "message received";
-
-        let senderHtml = "";
-        if (!isMe) {
-          senderHtml = `<span class="sender-name">${msg.sender}</span>`;
+            // 2. Clear Input
+            messageInput.value = "";
         }
 
-        messageDiv.innerHTML = `
+        // Listen for Incoming Messages
+        socket.on("chat message", (msg) => {
+            const isMe = msg.sender === myName;
+            
+            const div = document.createElement("div");
+            div.className = `message ${isMe ? 'sent' : 'received'}`;
+            
+            div.innerHTML = `
                 <div class="bubble">${msg.text}</div>
                 <div class="meta-info">
-                    ${senderHtml}
-                    <span class="timestamp">${msg.time}</span>
+                    <span>${msg.sender}</span> • <span>${msg.time}</span>
                 </div>
             `;
+            
+            messagesArea.appendChild(div);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        });
 
-        messagesArea.appendChild(messageDiv);
-        messagesArea.scrollTop = messagesArea.scrollHeight;
-      });
+        // Send on 'Enter' key
+        messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
     </script>
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener('DOMContentLoaded', () => {
         // Check if running in Capacitor App
         if (window.Capacitor) {
-          const { App } = Capacitor.Plugins;
+            const { App } = Capacitor.Plugins;
 
-          App.addListener("backButton", async () => {
-            // Get the current page path (e.g., "/dashboard", "/food")
-            const path = window.location.pathname;
+            App.addListener('backButton', async () => {
+                // Get the current page path (e.g., "/dashboard", "/food")
+                const path = window.location.pathname;
 
-            // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
-            // usually Login and Dashboard are the "Home" pages
-            if (path === "/dashboard" || path === "/login" || path === "/") {
-              App.exitApp();
-            } else {
-              // For any other page (Food, Community, Chat), go back!
-              window.history.back();
-            }
-          });
+                // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
+                // usually Login and Dashboard are the "Home" pages
+                if (path === '/dashboard' || path === '/login' || path === '/') {
+                    App.exitApp();
+                } else {
+                    // For any other page (Food, Community, Chat), go back!
+                    window.history.back();
+                }
+            });
         }
-      });
-    </script>
-  </body>
+    });
+</script>
+</body>
 </html>

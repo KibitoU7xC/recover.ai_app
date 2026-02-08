@@ -3,7 +3,7 @@
   "appName": "RecoverAI",
   "webDir": "public",
   "server": {
-    "url": "https://recover-ai.onrender.com",
+    "url": "https://recover-ai-mobile.onrender.com",
     "cleartext": true,
     "allowNavigation": [
       "*.google.com",

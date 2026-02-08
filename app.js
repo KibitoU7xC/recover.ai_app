@@ -11,15 +11,25 @@ const fs = require('fs');
 const axios = require('axios');
 const cron = require("node-cron");
 const twilio = require("twilio");
+const http = require('http'); // Built-in Node module
+const { Server } = require("socket.io"); // The new package
+
 
 // --- MODELS ---
 const userModel = require('./models/user'); 
 const Medication = require("./models/medication");
+const Message = require('./models/message');
 
 // --- CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 const app = express();
+// 👇 WRAP EXPRESS IN HTTP SERVER
+const server = http.createServer(app);
+// 👇 INITIALIZE SOCKET.IO
+const io = new Server(server); 
+
+app.set('trust proxy', 1);
 
 // --- DATABASE CONNECTION ---
 mongoose.connect(process.env.DB_URL)
@@ -520,12 +530,66 @@ app.get("/community", isloggedin, async (req, res) => {
     res.redirect("/dashboard");
   }
 });
-const Message = require('./models/message');
+// --- ADD THIS TO app.js (Right after the app.get community route) ---
 
-const PORT = process.env.PORT || 3000;
+app.post('/community', isloggedin, async (req, res) => {
+    try {
+        // 1. Get message from frontend
+        const { text } = req.body;
+        
+        // 2. Find the user sending it
+        const user = await userModel.findById(req.user.userid);
+
+        // 3. Create the new message
+        const newMessage = await Message.create({
+            userid: user._id,
+            username: user.name,
+            text: text,
+            createdAt: new Date()
+        });
+
+        // 4. Send back success
+        res.json({ success: true, message: newMessage });
+
+    } catch (err) {
+        console.error("Chat Error:", err);
+        res.status(500).json({ success: false });
+    }
+});
+
 // --- ANDROID VERIFICATION ROUTE ---
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.sendFile(__dirname + '/public/assetlinks.json');
 });
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+// --- SOCKET.IO REAL-TIME CHAT LOGIC ---
+io.on('connection', (socket) => {
+    console.log('A user connected to chat');
+
+    socket.on('chat message', async (msg) => {
+        try {
+            // 1. Save to Database (So it loads next time)
+            // We need to find the user ID based on the name sent from client
+            // (In a production app, we would use session cookies here, but this works for now)
+            const user = await userModel.findOne({ name: msg.sender });
+            
+            if (user) {
+                await Message.create({
+                    userid: user._id,
+                    username: msg.sender,
+                    text: msg.text,
+                    createdAt: new Date()
+                });
+            }
+
+            // 2. Broadcast to EVERYONE (including the sender)
+            io.emit('chat message', msg); 
+            
+        } catch (err) {
+            console.error("Socket Error:", err);
+        }
+    });
+});
+// ✅ USE PROCESS.ENV.PORT (Required for Render)
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
