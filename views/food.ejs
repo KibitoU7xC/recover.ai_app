@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheet/dashboard.css">
+    <style>
+        /* --- PAGE SPECIFIC STYLES --- */
+        body { background-color: #f8f9fa; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; padding-bottom: 90px; }
+
+        /* 1. VERTICAL MEAL SLOTS (The Fix) */
+        .slots-container {
+            display: flex;
+            flex-direction: column; /* Stacks vertically */
+            gap: 15px;
+            max-width: 500px; /* Limits width to look like a phone app */
+            margin: 0 auto 40px auto; /* Centers the whole list */
+        }
+
+        .meal-slot {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px dashed #d1d5db; /* Default Gray Dashed */
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .meal-slot:hover { border-color: #00c897; background: #f0fdf9; }
+
+        /* FILLED STATE (Green Border + Mint Background) */
+        .meal-slot.filled { 
+            border: 2px solid #00c897; 
+            background: #e6fffa; 
+            box-shadow: 0 4px 10px rgba(0, 200, 151, 0.1);
+        }
+
+        .slot-icon { font-size: 2rem; margin-bottom: 10px; }
+        .slot-title { font-weight: 700; color: #333; font-size: 1rem; margin-bottom: 4px; }
+        .slot-info { font-size: 0.85rem; color: #666; line-height: 1.4; }
+        .slot-info b { color: #00c897; }
+
+        /* Checkbox Icon for filled state */
+        .check-icon { color: #00c897; margin-right: 5px; }
+
+        /* 2. CHARTS SECTION (Kept same as before) */
+        .charts-wrapper {
+            display: flex; flex-direction: column; align-items: center; gap: 30px;
+        }
+        .macro-card {
+            background: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 600px;
+        }
+        .macro-header { font-size: 1.1rem; font-weight: 700; color: #444; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .macro-row { display: flex; align-items: center; margin-bottom: 15px; }
+        .macro-icon { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #555; margin-right: 12px; background: #f3f4f6; border-radius: 50%; }
+        .macro-info { flex: 1; }
+        .macro-top-line { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; }
+        .progress-bg { height: 6px; background-color: #eee; border-radius: 10px; overflow: hidden; width: 85%; display: inline-block; vertical-align: middle; }
+        .progress-fill { height: 100%; border-radius: 10px; }
+        .macro-percent { width: 13%; text-align: right; font-weight: bold; color: #999; font-size: 0.75rem; display: inline-block; }
+
+        /* Colors */
+        .fill-protein { background-color: #FF6B6B; }
+        .fill-fats { background-color: #FFD93D; }
+        .fill-carbs { background-color: #6BCB77; }
+        .fill-fiber { background-color: #4D96FF; }
+        .fill-calcium { background-color: #f1c40f; } .fill-iron { background-color: #e74c3c; }
+        .fill-zinc { background-color: #95a5a6; } .fill-magnesium { background-color: #9b59b6; }
+        .fill-cholesterol { background-color: #e67e22; }
+
+        #uploadForm { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Daily Food Tracker</h2>
+
+        <div class="slots-container">
+            <% 
+            const slots = [
+                { id: 'breakfast', icon: '🍳', label: 'Breakfast', data: user.meals?.breakfast },
+                { id: 'morningSnack', icon: '🍎', label: 'Morning Snack', data: user.meals?.morningSnack },
+                { id: 'lunch', icon: '🍛', label: 'Lunch', data: user.meals?.lunch },
+                { id: 'eveningSnack', icon: '☕', label: 'Evening Snack', data: user.meals?.eveningSnack },
+                { id: 'dinner', icon: '🌙', label: 'Dinner', data: user.meals?.dinner }
+            ];
+            %>
+
+            <% slots.forEach(slot => { %>
+                <div class="meal-slot <%= (slot.data && slot.data.name) ? 'filled' : '' %>" onclick="triggerUpload('<%= slot.id %>')">
+                    <span class="slot-icon"><%= slot.icon %></span>
+                    <div class="slot-title"><%= slot.label %></div>
+                    <div class="slot-info" id="info-<%= slot.id %>">
+                        <% if (slot.data && slot.data.name) { %>
+                            <i class="fas fa-check-square check-icon"></i> 
+                            <%= slot.data.name %>
+                            <br>
+                            <b><%= slot.data.calories %> kcal</b>
+                        <% } else { %>
+                            Tap to add
+                        <% } %>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <% 
+            const macroTargets = { protein: 150, fats: 70, carbs: 300, fiber: 35 }; 
+            const microTargets = { calcium: 1000, iron: 18, zinc: 11, magnesium: 400, cholesterol: 300 };
+            function getPct(val, target) {
+                if(!val) val = 0;
+                let pct = Math.round((val / target) * 100);
+                return pct > 100 ? 100 : pct;
+            }
+        %>
+
+        <div class="charts-wrapper">
+            <div class="macro-card">
+                <div class="macro-header">Macronutrients</div>
+                <% const macros = [
+                    { key: 'protein', label: 'Protein', icon: 'drumstick-bite', color: 'fill-protein' },
+                    { key: 'fats', label: 'Fats', icon: 'cheese', color: 'fill-fats' },
+                    { key: 'carbs', label: 'Carbs', icon: 'bread-slice', color: 'fill-carbs' },
+                    { key: 'fiber', label: 'Fiber', icon: 'seedling', color: 'fill-fiber' }
+                ]; %>
+                <% macros.forEach(m => { %>
+                    <div class="macro-row">
+                        <div class="macro-icon"><i class="fas fa-<%= m.icon %>"></i></div>
+                        <div class="macro-info">
+                            <div class="macro-top-line">
+                                <b><%= m.label %></b>
+                                <span><%= user.nutrition[m.key] %> / <%= macroTargets[m.key] %> g</span>
+                            </div>
+                            <div>
+                                <div class="progress-bg"><div class="progress-fill <%= m.color %>" style="width: <%= getPct(user.nutrition[m.key], macroTargets[m.key]) %>%"></div></div>
+                                <span class="macro-percent"><%= getPct(user.nutrition[m.key], macroTargets[m.key]) %>%</span>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+
+            <div class="macro-card">
+                <div class="macro-header">Micronutrients</div>
+                <% const micros = [
+                    { key: 'calcium', label: 'Calcium', icon: 'bone', color: 'fill-calcium', unit: 'mg' },
+                    { key: 'iron', label: 'Iron', icon: 'dumbbell', color: 'fill-iron', unit: 'mg' },
+                    { key: 'zinc', label: 'Zinc', icon: 'shield-virus', color: 'fill-zinc', unit: 'mg' },
+                    { key: 'magnesium', label: 'Magnesium', icon: 'bolt', color: 'fill-magnesium', unit: 'mg' },
+                    { key: 'cholesterol', label: 'Cholesterol', icon: 'heartbeat', color: 'fill-cholesterol', unit: 'mg' }
+                ]; %>
+                <% micros.forEach(m => { %>
+                    <div class="macro-row">
+                        <div class="macro-icon"><i class="fas fa-<%= m.icon %>"></i></div>
+                        <div class="macro-info">
+                            <div class="macro-top-line">
+                                <b><%= m.label %></b>
+                                <span><%= user.nutrition[m.key] %> / <%= microTargets[m.key] %> <%= m.unit %></span>
+                            </div>
+                            <div>
+                                <div class="progress-bg"><div class="progress-fill <%= m.color %>" style="width: <%= getPct(user.nutrition[m.key], microTargets[m.key]) %>%"></div></div>
+                                <span class="macro-percent"><%= getPct(user.nutrition[m.key], microTargets[m.key]) %>%</span>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="report" accept="image/*" onchange="submitMeal()">
+            <input type="hidden" id="mealTypeInput" name="mealType">
+        </form>
+
+    </div>
+
+    <script>
+        function triggerUpload(mealType) {
+            document.getElementById('mealTypeInput').value = mealType;
+            document.getElementById('fileInput').click();
+        }
+
+        async function submitMeal() {
+            const form = document.getElementById('uploadForm');
+            const formData = new FormData(form);
+            const mealType = document.getElementById('mealTypeInput').value;
+
+            document.getElementById(`info-${mealType}`).innerText = "Scanning...";
+
+            try {
+                const response = await fetch('/analyze', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) location.reload(); 
+                else alert("Analysis failed.");
+            } catch (err) {
+                console.error(err);
+                alert("Server error.");
+            }
+        }
+    </script>
+</body>
+</html>

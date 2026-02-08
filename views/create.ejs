@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyHealth Portal - Create Account</title>
+    <link rel="stylesheet" href="/stylesheet/login.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="page-wrapper">
+    <div class="login-card">
+        <div class="header-section">
+            <div class="logo-icon">
+                <i class="ph-bold ph-user-plus">+</i>
+            </div>
+            <h1>Create Account</h1>
+            <p class="tagline">Join RECOVER.AI and manage your health journey</p>
+        </div>
+
+        <form id="registerForm" action="/create" method="post">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="first-name">First Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="first-name"  name="name" placeholder="John" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="email">email</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="email" name="email" placeholder="john.doe@example.com" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="phone">Phone Number</label>
+                <div class="input-wrapper">
+                    <i class="ph ph-phone"></i>
+                    <input type="tel" id="phone" name="phone" placeholder="+91xxxxxxxxxx" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Create Password</label>
+                <div class="input-wrapper">
+                    <i class="ph ph-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="Min. 8 characters" required>
+                </div>
+            </div>
+
+            <div class="terms-group">
+                <input type="checkbox" id="terms" required>
+                <label for="terms">I agree to the <a href="#">Terms of Service</a> & <a href="#">Privacy Policy</a></label>
+            </div>
+
+            <button type="submit" class="sign-in-btn">
+                Create Account <i class="ph ph-sparkle"></i>
+            </button>
+        </form>
+
+        <div class="footer-section">
+            <p class="signup-text">Already have an account? <a href="/login">Sign In</a></p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

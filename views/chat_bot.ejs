@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doctor Brain AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- MOBILE CHAT CSS --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        
+        body { 
+            background-color: #f0f2f5; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        /* 1. HEADER */
+        .chat-header {
+            background: #ffffff;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .back-btn { font-size: 1.2rem; color: #555; text-decoration: none; }
+        .bot-info { display: flex; align-items: center; gap: 10px; }
+        .bot-avatar { 
+            width: 40px; height: 40px; 
+            background: #e0f2f1; color: #009688;
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+        .bot-status h3 { font-size: 1rem; color: #333; margin: 0; }
+        .bot-status span { font-size: 0.75rem; color: #00c897; font-weight: 600; }
+
+        /* 2. CHAT AREA */
+        .chat-container {
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-image: radial-gradient(#ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .message {
+            max-width: 85%; /* Slightly wider for medical info */
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .bot-msg { align-self: flex-start; background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .user-msg { align-self: flex-end; background: #00c897; color: white; border-bottom-right-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        /* Medical Formatting Inside Bubbles */
+        .bot-msg strong { color: #0b57d0; font-weight: 600; display: block; margin-top: 8px; margin-bottom: 4px; }
+        .bot-msg strong:first-child { margin-top: 0; }
+        .bot-msg ul { padding-left: 20px; margin: 5px 0; }
+        .bot-msg li { margin-bottom: 4px; }
+
+        /* Badges */
+        .status-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: bold; margin-top: 10px;
+        }
+        .emergency { background-color: #fce8e6; color: #c5221f; border: 1px solid #faddd9; }
+        .stable { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+
+        /* Loading Dots */
+        .typing-indicator {
+            align-self: flex-start; background: white; padding: 10px 15px; border-radius: 18px;
+            display: none; gap: 5px;
+        }
+        .dot { width: 8px; height: 8px; background: #ccc; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        /* 3. INPUT AREA */
+        .input-wrapper { background: white; border-top: 1px solid #eee; display: flex; flex-direction: column; }
+        
+        .file-preview {
+            display: none; padding: 10px 15px; background: #f9f9f9; border-bottom: 1px solid #eee;
+        }
+        .preview-box {
+            display: inline-flex; align-items: center; background: #e8f5e9; padding: 5px 10px;
+            border-radius: 8px; font-size: 0.85rem; color: #2e7d32; gap: 8px;
+        }
+        .remove-file { cursor: pointer; color: #d32f2f; }
+
+        .input-area { padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
+        
+        .attach-btn { font-size: 1.3rem; color: #777; cursor: pointer; padding: 5px; display: flex; align-items: center; }
+        .chat-input {
+            flex: 1; padding: 12px 15px; border-radius: 25px; border: 1px solid #ddd;
+            background: #f9f9f9; font-size: 1rem; outline: none; transition: border-color 0.2s;
+        }
+        .chat-input:focus { border-color: #00c897; background: white; }
+        .send-btn {
+            width: 45px; height: 45px; background: #00c897; border: none; border-radius: 50%;
+            color: white; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="chat-header">
+        <div class="header-left">
+            <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <div class="bot-info">
+                <div class="bot-avatar"><i class="fas fa-user-md"></i></div>
+                <div class="bot-status">
+                    <h3>Doctor Brain</h3>
+                    <span>Online</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="message bot-msg">
+            Hello! I'm Doctor Brain. Describe your symptoms or upload a medical image (X-ray, skin condition, etc.) and I will analyze it for you.
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+    </div>
+
+    <div class="input-wrapper">
+        <div class="file-preview" id="filePreview">
+            <div class="preview-box">
+                <i class="fas fa-image"></i>
+                <span id="fileName">image.png</span>
+                <i class="fas fa-times remove-file" onclick="clearFile()"></i>
+            </div>
+        </div>
+
+        <form class="input-area" id="chatForm">
+            <input type="file" id="fileInput" name="image" accept="image/*" style="display: none;" onchange="handleFileSelect()">
+            
+            <label for="fileInput" class="attach-btn"><i class="fas fa-paperclip"></i></label>
+            <input type="text" class="chat-input" id="userInput" placeholder="Message Doctor Brain..." autocomplete="off">
+            <button type="submit" class="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </form>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_URL = "https://recover-ai-chat-bot.onrender.com/analyze"; 
+        const API_KEY = "1234";
+
+        // --- DOM ELEMENTS ---
+        const chatContainer = document.getElementById('chatContainer');
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('userInput');
+        const fileInput = document.getElementById('fileInput');
+        const typing = document.getElementById('typingIndicator');
+        const filePreview = document.getElementById('filePreview');
+        const fileNameSpan = document.getElementById('fileName');
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 1. Handle File Selection
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                fileNameSpan.innerText = file.name;
+                filePreview.style.display = 'block';
+                input.placeholder = "Add a caption (optional)...";
+                input.focus();
+            }
+        }
+
+        // 2. Clear File
+        function clearFile() {
+            fileInput.value = "";
+            filePreview.style.display = 'none';
+            input.placeholder = "Message Doctor Brain...";
+        }
+
+        // 3. Add Message to UI
+        function addMessage(htmlContent, sender) {
+            const div = document.createElement('div');
+            div.classList.add('message', sender === 'user' ? 'user-msg' : 'bot-msg');
+            div.innerHTML = htmlContent; // We use innerHTML to support bold/lists
+            chatContainer.insertBefore(div, typing);
+            scrollToBottom();
+        }
+
+        // 4. Submit Logic (Talking to your Render API)
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            const file = fileInput.files[0];
+
+            if (!text && !file) return;
+
+            // Display User Message
+            let userDisplay = text ? text.replace(/\n/g, '<br>') : '';
+            if (file) userDisplay += `<br><small><i>📎 [Image Attached: ${file.name}]</i></small>`;
+            addMessage(userDisplay, 'user');
+
+            // Clear Input
+            input.value = '';
+            clearFile();
+            
+            // Show Loading
+            typing.style.display = 'flex';
+            scrollToBottom();
+
+            // Prepare Data for your Python/FastAPI Backend
+            const formData = new FormData();
+            formData.append("query", text || "Analyze this image"); // API expects 'query'
+            if (file) {
+                formData.append("image", file);
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "x-api-key": API_KEY },
+                    body: formData
+                });
+
+                const data = await response.json();
+                typing.style.display = 'none';
+
+                if (response.ok) {
+                    // Format the Doctor Brain JSON into HTML
+                    const statusClass = data.is_emergency ? 'emergency' : 'stable';
+                    const statusText = data.is_emergency ? '🚨 Seek Medical Help' : '✅ Stable Condition';
+                    
+                    const dietSection = (data.diet_plan && data.diet_plan.length > 0) 
+                        ? `<strong>🥗 Suggested Diet:</strong><ul>${data.diet_plan.map(d => `<li>${d}</li>`).join('')}</ul>` 
+                        : '';
+
+                    const remediesSection = (data.remedies && data.remedies.length > 0)
+                        ? `<strong>💊 Remedies:</strong><ul>${data.remedies.map(r => `<li>${r}</li>`).join('')}</ul>`
+                        : '';
+
+                    const aiHTML = `
+                        <strong>Diagnosis: ${data.potential_diagnosis}</strong>
+                        <p>${data.findings}</p>
+                        ${remediesSection}
+                        ${dietSection}
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    `;
+                    
+                    addMessage(aiHTML, 'bot');
+                } else {
+                    addMessage(`⚠️ Error: ${data.detail || "Server issue"}`, 'bot');
+                }
+
+            } catch (error) {
+                console.error(error);
+                typing.style.display = 'none';
+                addMessage("⚠️ Connection failed. Please check your internet or the API URL.", 'bot');
+            }
+        });
+
+        
+    </script>
+</body>
+</html>

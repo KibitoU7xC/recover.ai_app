@@ -1,0 +1,178 @@
+/* --- RESET & GLOBAL --- */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background-color: #f0f2f5; padding: 20px; padding-bottom: 80px; }
+
+/* --- HEADER --- */
+.app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.user-welcome h1 { font-size: 1.4rem; color: #1a1a1a; font-weight: 700; }
+.user-welcome p { color: #666; font-size: 0.9rem; }
+.profile-pic {
+    width: 42px; height: 42px; background: #00c897; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* --- QUICK ACTIONS (Top 3 Icons) --- */
+.quick-actions { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 25px; }
+.action-btn { 
+    text-decoration: none; flex: 1; display: flex; flex-direction: column; align-items: center; 
+    background: white; padding: 15px 10px; border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.1s;
+}
+.action-btn:active { transform: scale(0.97); }
+.icon-circle {
+    width: 45px; height: 45px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; margin-bottom: 8px;
+}
+.action-btn span { font-size: 0.8rem; color: #444; font-weight: 600; }
+
+/* Icon Colors */
+.food-color { background: #e0f2f1; color: #009688; } /* Teal */
+.med-color { background: #e3f2fd; color: #2196f3; } /* Blue */
+.comm-color { background: #fff8e1; color: #ffc107; } /* Amber */
+.heart-color { color: #f44336; }
+.step-color { color: #3f51b5; }
+.burn-color { color: #ff5722; }
+
+/* --- METRIC CARDS (The Google Fit Style) --- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Mobile: Stack vertically */
+    gap: 15px;
+}
+
+@media (min-width: 600px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; } /* Tablet/Desktop: 2x2 Grid */
+}
+
+.metric-card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    display: flex; flex-direction: column;
+    min-height: 140px; /* Consistent height */
+    justify-content: space-between;
+}
+
+/* Card Header */
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-title { font-size: 0.95rem; font-weight: 600; color: #555; }
+.icon-small { font-size: 1.1rem; opacity: 0.8; }
+
+/* Card Body */
+.card-body { display: flex; flex-direction: column; }
+.card-value { font-size: 1.8rem; font-weight: 800; color: #222; line-height: 1; }
+.unit { font-size: 0.9rem; font-weight: 500; color: #888; margin-left: 2px; }
+.card-subtext { font-size: 0.75rem; color: #999; margin-top: 5px; font-weight: 500; }
+
+/* Specific Layout for Steps Card (Value Left, Graph Right) */
+.card-body-row { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; }
+
+/* Mini Bar Chart */
+.mini-chart {
+    display: flex; align-items: flex-end; gap: 4px;
+    height: 50px; width: 80px; /* Fixed size for consistency */
+}
+.bar {
+    flex: 1;
+    background-color: #e0e0e0;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+.bar:last-child { background-color: #3f51b5; } /* Highlight today's bar */
+
+/* Progress Bar (For Calories) */
+.progress-track {
+    width: 100%; height: 6px; background: #eee; border-radius: 10px;
+    margin-top: 10px; overflow: hidden;
+}
+.progress-fill {
+    height: 100%; background: #00c897; border-radius: 10px;
+}
+/* --- SWIPE HINT TAB (Floating Action) --- */
+.swipe-hint-tab {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #00c897, #00a87e); /* Nice Green Gradient */
+    color: white;
+    padding: 12px 10px 12px 15px; /* More padding on left for text */
+    border-top-left-radius: 25px;
+    border-bottom-left-radius: 25px;
+    box-shadow: -4px 4px 15px rgba(0, 200, 151, 0.4);
+    cursor: pointer;
+    z-index: 9999; /* Always on top */
+    overflow: hidden; /* For the shine effect */
+    transition: transform 0.2s ease;
+    
+    /* Animation: Pulse Left/Right */
+    animation: hint-bounce 2s infinite ease-in-out;
+}
+
+/* Hover Effect (Sticks out more) */
+.swipe-hint-tab:hover {
+    padding-right: 15px; /* Expands slightly */
+    background: #009688;
+}
+
+.hint-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+}
+
+.hint-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: none; /* Hidden on tiny screens, visible on hover/larger */
+}
+
+.hint-arrow {
+    font-size: 1.2rem;
+    animation: arrow-move 1s infinite alternate;
+}
+
+/* Show text on slightly larger mobile screens */
+@media (min-width: 360px) {
+    .hint-text { display: block; }
+}
+
+/* --- ANIMATIONS --- */
+
+/* 1. Bounce Left (To show "Swipe This Way") */
+@keyframes hint-bounce {
+    0%, 100% { transform: translateY(-50%) translateX(0); }
+    50% { transform: translateY(-50%) translateX(-5px); } /* Moves left 5px */
+}
+
+/* 2. Arrow Wiggle */
+@keyframes arrow-move {
+    from { transform: translateX(0); }
+    to { transform: translateX(-3px); }
+}
+
+/* 3. Shine Effect (Glossy reflection passing through) */
+.shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-25deg);
+    animation: shine-pass 3s infinite;
+    z-index: 1;
+}
+
+@keyframes shine-pass {
+    0% { left: -100%; }
+    20% { left: 200%; } /* Fast pass */
+    100% { left: 200%; } /* Wait before next pass */
+}

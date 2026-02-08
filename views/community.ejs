@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recover.AI - Community</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* --- THEME VARIABLES (Matching your Dashboard) --- */
+      :root {
+        --brand-green: #2ecc71;
+        --brand-blue: #4285f4;
+        --bg-color: #f8f9fa;
+        --card-bg: #ffffff;
+        --text-dark: #333333;
+        --text-light: #777777;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+          0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        --radius: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-dark);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* --- NAVBAR --- */
+      .navbar {
+        background-color: var(--card-bg);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      .logo {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--brand-green);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .nav-link {
+        text-decoration: none;
+        color: var(--text-light);
+        font-weight: 500;
+        font-size: 0.95rem;
+        position: relative;
+        padding-bottom: 5px;
+        transition: color 0.2s;
+      }
+
+      .nav-link:hover {
+        color: var(--text-dark);
+      }
+
+      /* Active State for Community Tab */
+      .nav-link.active {
+        color: var(--text-dark);
+      }
+      .nav-link.active::after {
+        content: "";
+        position: absolute;
+        bottom: -21px;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--brand-green);
+      }
+
+      .profile-section {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .profile-icon {
+        background-color: #ff5252;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      /* --- CHAT CONTAINER --- */
+      .main-container {
+        flex: 1;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .page-header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .page-header p {
+        color: var(--text-light);
+      }
+
+      /* --- CHAT CARD UI --- */
+      .chat-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        max-height: 70vh;
+      }
+
+      .chat-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .chat-header h3 {
+        font-size: 1.1rem;
+      }
+
+      .online-badge {
+        font-size: 0.85rem;
+        color: var(--brand-green);
+        background: #eafff3;
+        padding: 4px 12px;
+        border-radius: 20px;
+      }
+
+      /* --- MESSAGES AREA --- */
+      .messages-area {
+        flex: 1;
+        padding: 1.5rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background-color: #fcfcfc;
+      }
+
+      .message {
+        max-width: 70%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .message.received {
+        align-self: flex-start;
+      }
+      .message.sent {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+
+      .bubble {
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        position: relative;
+      }
+
+      .message.received .bubble {
+        background-color: #f0f2f5;
+        color: var(--text-dark);
+        border-bottom-left-radius: 2px;
+      }
+
+      .message.sent .bubble {
+        background-color: var(--brand-green);
+        color: white;
+        border-bottom-right-radius: 2px;
+      }
+
+      .meta-info {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+        font-size: 0.75rem;
+        color: #999;
+      }
+
+      .sender-name {
+        font-weight: 600;
+      }
+
+      /* --- INPUT AREA --- */
+      .input-area {
+        padding: 1.5rem;
+        background: white;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 1rem;
+      }
+
+      .input-area input {
+        flex: 1;
+        padding: 12px 20px;
+        border: 1px solid #ddd;
+        border-radius: 30px;
+        outline: none;
+        transition: border 0.3s;
+      }
+
+      .input-area input:focus {
+        border-color: var(--brand-green);
+      }
+
+      .send-btn {
+        background-color: var(--brand-blue);
+        color: white;
+        border: none;
+        padding: 0 24px;
+        border-radius: 30px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: opacity 0.2s;
+      }
+
+      .send-btn:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+  
+
+    <div class="main-container">
+      <div class="page-header">
+        <h1>Community Room</h1>
+        <p>Connect with others on their recovery journey.</p>
+      </div>
+
+      <div class="chat-card">
+        <div class="chat-header">
+          <h3>General Chat</h3>
+          <span class="online-badge">● Live</span>
+        </div>
+
+        <div class="messages-area" id="messagesArea">
+          <% if (typeof messages !== 'undefined' && messages.length > 0) { %> <%
+          messages.forEach(function(msg) { %>
+          <div
+            class="message <%= msg.sender === user.name ? 'sent' : 'received' %>"
+          >
+            <div class="bubble"><%= msg.text %></div>
+            <div class="meta-info">
+              <% if (msg.sender !== user.name) { %>
+              <span class="sender-name"><%= msg.sender %></span>
+              <% } %>
+              <span class="timestamp"><%= msg.time %></span>
+            </div>
+          </div>
+          <% }); %> <% } else { %>
+          <div style="text-align: center; color: #ccc; margin-top: 20px">
+            No messages yet. Start the conversation!
+          </div>
+          <% } %>
+        </div>
+
+        <div class="input-area">
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Type a message..."
+            autocomplete="off"
+          />
+          <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const messagesArea = document.getElementById("messagesArea");
+      const messageInput = document.getElementById("messageInput");
+
+      // Pass the actual logged-in user's name from EJS to JS
+      const currentUserName = "<%= user.name %>";
+
+      // Scroll to bottom on load
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+
+      // Send on Enter key
+      messageInput.addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      });
+
+      function sendMessage() {
+        const text = messageInput.value.trim();
+        if (text === "") return;
+
+        // Get formatted Time
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        // Emit to Server with REAL Name
+        socket.emit("chat message", {
+          text: text,
+          time: timeString,
+          sender: currentUserName,
+        });
+
+        // Clear Input
+        messageInput.value = "";
+      }
+
+      // Listen for incoming messages
+      socket.on("chat message", function (msg) {
+        const messageDiv = document.createElement("div");
+
+        // LOGIC: If I sent it, make it 'sent' (Right/Green). If someone else, 'received' (Left/Gray)
+        const isMe = msg.sender === currentUserName;
+        messageDiv.className = isMe ? "message sent" : "message received";
+
+        let senderHtml = "";
+        if (!isMe) {
+          senderHtml = `<span class="sender-name">${msg.sender}</span>`;
+        }
+
+        messageDiv.innerHTML = `
+                <div class="bubble">${msg.text}</div>
+                <div class="meta-info">
+                    ${senderHtml}
+                    <span class="timestamp">${msg.time}</span>
+                </div>
+            `;
+
+        messagesArea.appendChild(messageDiv);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+      });
+    </script>
+  </body>
+</html>

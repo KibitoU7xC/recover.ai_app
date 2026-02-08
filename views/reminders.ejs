@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminders Widget</title>
+    <link rel="stylesheet" href="/stylesheet/reminders.css">
+</head>
+<body>
+    <div class="reminders-container">
+        <!-- Header -->
+        <div class="reminders-header">
+            <h1>📋 My Reminders</h1>
+            <p class="user-name">Hello, <%= user.name %>!</p>
+        </div>
+
+        <!-- Add Reminder Form -->
+        <div class="add-reminder-section">
+            <div class="form-container">
+                <h3>➕ Add New Reminder</h3>
+                <form id="addReminderForm">
+                    <div class="form-group">
+                        <label for="medicineName">Medicine/Reminder Name</label>
+                        <input type="text" id="medicineName" placeholder="e.g., Aspirin, Take vitamins" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reminderTime">Time</label>
+                        <input type="time" id="reminderTime" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Reminder</button>
+                </form>
+                <div id="addMessage" class="message"></div>
+            </div>
+        </div>
+
+        <!-- Today's Reminders Tab -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="today">📅 Today's Reminders</button>
+            <button class="tab-btn" data-tab="history">📚 History</button>
+        </div>
+
+        <!-- Today's Reminders Section -->
+        <div id="today" class="tab-content active">
+            <div class="reminders-list" id="todayRemindersList">
+                <div class="empty-state">
+                    <p>No reminders for today yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div id="history" class="tab-content">
+            <div class="reminders-list" id="historyRemindersList">
+                <div class="empty-state">
+                    <p>No reminder history yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Reminder Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3>Edit Reminder</h3>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editMedicine">Medicine/Reminder Name</label>
+                    <input type="text" id="editMedicine" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTime">Time</label>
+                    <input type="time" id="editTime" required>
+                </div>
+                <!-- status removed: only edit/delete allowed in history -->
+                <button type="submit" class="btn btn-primary">Update Reminder</button>
+            </form>
+            <div id="editMessage" class="message"></div>
+        </div>
+    </div>
+
+    <script src="/javascript/reminders.js"></script>
+</body>
+</html>

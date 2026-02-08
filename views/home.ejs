@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recover.AI - Health Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheet/home.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo">
+            <span class="plus-icon">+</span> <strong>Recover.AI</strong>
+        </div>
+        
+        <div class="menu-toggle" onclick="toggleMenu()">
+            <i class="fas fa-bars"></i>
+        </div>
+
+        <nav class="nav-links">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Services</a></li>
+                <li><a href="#">Testimonial</a></li>
+                <li><a href="#">Contact</a></li>
+                <li class="mobile-btn"><a href="/login">Login</a></li>
+                <li class="mobile-btn"><a href="/create" class="btn-primary-mobile">Get Started</a></li>
+            </ul>
+        </nav> 
+        
+        <div class="desktop-btn">
+            <a href="/create" class="btn-primary">Get Started</a>
+        </div>
+    </header>
+
+    <main class="hero">
+        <div class="hero-content">
+            <p class="subtitle">Welcome To RECOVER.AI</p>
+            <h1>We'll Ensure You Always Get The Best Result.</h1>
+            <p class="description">
+                Your personal AI health assistant. Track nutrition, monitor vitals, and get instant analysis of your medical reports—all in one secure place.
+            </p>
+            <div class="hero-btns">
+                <a href="/create" class="btn-primary">Get Started</a>
+                <a href="/login" class="btn-secondary">Login</a>
+            </div>
+        </div>
+
+        <div class="hero-image-container">
+            <div class="bg-blur-shape"></div>
+            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=60" alt="Health AI" class="main-img">
+        </div>
+    </main>
+
+    <script>
+        function toggleMenu() {
+            const nav = document.querySelector('.nav-links');
+            nav.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

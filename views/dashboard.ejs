@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recover.AI Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/stylesheet/dashboard.css">
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="user-welcome">
+            <h1>Hello, <%= user.name.split(' ')[0] %>! 👋</h1>
+            <p>Your daily health overview</p>
+        </div>
+        <div class="profile-pic">
+            <%= user.name.charAt(0) %>
+        </div>
+    </header>
+    <div class="connection-banner">
+            <% if (!googleToken) { %>
+                <div class="banner-content warning">
+                    <div class="banner-icon">⚠️</div>
+                    <div class="banner-text">
+                        <strong>Connect Google Fit</strong>
+                        <span>Sync to see your Heart Rate, Steps, and Sleep.</span>
+                    </div>
+                    <a href="/auth/google" class="btn-connect">Connect Now</a>
+                </div>
+            <% } else { %>
+                <div class="banner-content success">
+                    <div class="banner-icon">✅</div>
+                    <div class="banner-text">
+                        <strong>Synced with Google Fit</strong>
+                        <span>Steps, Heart Rate & Burned Calories synced.</span>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+
+        <style>
+            /* Add this CSS right here or in your dashboard.css */
+            .connection-banner { margin: 20px 0; }
+            
+            .banner-content {
+                display: flex;
+                align-items: center;
+                padding: 15px 20px;
+                border-radius: 12px;
+                background: white;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            
+            .banner-content.warning { border-left: 5px solid #FF9800; }
+            .banner-content.success { border-left: 5px solid #00C853; }
+
+            .banner-icon { font-size: 1.5rem; margin-right: 15px; }
+            
+            .banner-text { flex: 1; display: flex; flex-direction: column; }
+            .banner-text strong { font-size: 1rem; color: #333; }
+            .banner-text span { font-size: 0.85rem; color: #666; }
+
+            .btn-connect {
+                background: #4285F4;
+                color: white;
+                text-decoration: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                transition: 0.3s;
+            }
+            .btn-connect:hover { background: #3367D6; box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3); }
+        </style>
+
+    <section class="quick-actions">
+        <a href="/food" class="action-btn">
+            <div class="icon-circle food-color"><i class="fas fa-utensils"></i></div>
+            <span>Food Scan</span>
+        </a>
+        <a href="/medication" class="action-btn">
+            <div class="icon-circle med-color"><i class="fas fa-pills"></i></div>
+            <span>Meds</span>
+        </a>
+        <a href="/community" class="action-btn">
+            <div class="icon-circle comm-color"><i class="fas fa-users"></i></div>
+            <span>Community</span>
+        </a>
+    </section>
+
+    <section class="stats-grid">
+
+        <div class="metric-card">
+            <div class="card-header">
+                <span class="card-title">Heart Rate</span>
+                <i class="fas fa-heartbeat icon-small heart-color"></i>
+            </div>
+            <div class="card-body">
+                <div class="card-value">
+                    <%= graphData.todayHeartRate || '--' %> <span class="unit">bpm</span>
+                </div>
+                <div class="card-subtext">Today's Avg</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="card-header">
+                <span class="card-title">Steps</span>
+                <i class="fas fa-shoe-prints icon-small step-color"></i>
+            </div>
+            <div class="card-body-row">
+                <div class="value-container">
+                    <div class="card-value">
+                        <%= graphData.todaySteps || 0 %> <span class="unit">steps</span>
+                    </div>
+                    <div class="card-subtext">Last 7 Days</div>
+                </div>
+                <div class="mini-chart">
+                    <% 
+                       // Find max value to scale bars relative to 100% height
+                       let maxStep = Math.max(...(graphData.steps.length ? graphData.steps : [1]));
+                    %>
+                    <% graphData.steps.forEach(step => { 
+                        let h = (step / maxStep) * 100; 
+                        if(h < 10) h = 10; // Min height
+                    %>
+                        <div class="bar" style="height: <%= h %>%;" title="<%= step %>"></div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="card-header">
+                <span class="card-title">Calories Intake</span>
+                <i class="fas fa-apple-alt icon-small food-color"></i>
+            </div>
+            <div class="card-body">
+                <div class="card-value">
+                    <%= user.nutrition ? user.nutrition.calories : 0 %> <span class="unit">kcal</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: <%= Math.min(((user.nutrition?.calories || 0) / 2500) * 100, 100) %>%"></div>
+                </div>
+                <div class="card-subtext" style="margin-top: 5px;">Target: 2500 kcal</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="card-header">
+                <span class="card-title">Calories Burned</span>
+                <i class="fas fa-fire-alt icon-small burn-color"></i>
+            </div>
+            <div class="card-body">
+                <div class="card-value">
+                    <%= graphData.todayCaloriesBurned || 0 %> <span class="unit">kcal</span>
+                </div>
+                <div class="card-subtext">Total Active Burn</div>
+            </div>
+        </div>
+
+    </section>
+
+    <script>
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function checkSwipe() {
+            if (touchStartX - touchEndX > 70) { // Swipe Left
+                window.location.href = '/chat_bot';
+            }
+        }
+
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            checkSwipe();
+        });
+    </script>
+        <div class="swipe-hint-tab" onclick="window.location.href='/chat_bot'">
+        <div class="hint-content">
+            <span class="hint-text"></span>
+            <i class="fas fa-chevron-left hint-arrow"></i>
+        </div>
+        <div class="shine"></div>
+    </div>
+
+</body>
+</html>
