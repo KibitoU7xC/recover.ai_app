@@ -112,20 +112,9 @@
                     <div class="card-value">
                         <%= graphData.todaySteps || 0 %> <span class="unit">steps</span>
                     </div>
-                    <div class="card-subtext">Last 7 Days</div>
+                    <div class="card-subtext">Today's Steps</div>
                 </div>
-                <div class="mini-chart">
-                    <% 
-                       // Find max value to scale bars relative to 100% height
-                       let maxStep = Math.max(...(graphData.steps.length ? graphData.steps : [1]));
-                    %>
-                    <% graphData.steps.forEach(step => { 
-                        let h = (step / maxStep) * 100; 
-                        if(h < 10) h = 10; // Min height
-                    %>
-                        <div class="bar" style="height: <%= h %>%;" title="<%= step %>"></div>
-                    <% }) %>
-                </div>
+                
             </div>
         </div>
 
