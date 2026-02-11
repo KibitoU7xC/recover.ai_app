@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Recover.AI - Community</title>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet" />
     
     <style>
-        /* --- GLOBAL THEME --- */
+        /* --- GLOBAL VARIABLES --- */
         :root { 
             --brand-green: #2ecc71; 
             --brand-blue: #4285f4; 
@@ -26,7 +26,7 @@
             height: 100vh; 
             display: flex; 
             flex-direction: column; 
-            overflow: hidden; /* Prevents double scrollbars */
+            overflow: hidden; /* Prevents double scrolling */
         }
         
         /* --- NAVBAR --- */
@@ -36,8 +36,8 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            flex-shrink: 0; /* Prevents navbar from shrinking */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+            flex-shrink: 0;
         }
 
         .logo { 
@@ -76,7 +76,7 @@
             padding: 1rem; 
             display: flex; 
             flex-direction: column; 
-            height: 100%; /* Take full height */
+            height: 100%; 
         }
 
         .chat-card { 
@@ -87,7 +87,6 @@
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
-            /* height is handled by flex: 1 */
         }
         
         /* --- MESSAGES AREA --- */
@@ -107,7 +106,7 @@
             flex-direction: column; 
         }
         
-        /* Alignment logic */
+        /* Message Alignment */
         .message.sent { align-self: flex-end; align-items: flex-end; }
         .message.received { align-self: flex-start; align-items: flex-start; }
         
@@ -120,7 +119,7 @@
             position: relative;
         }
 
-        /* Color bubbles */
+        /* Bubble Colors */
         .message.sent .bubble { 
             background-color: var(--brand-green); 
             color: white; 
@@ -179,12 +178,13 @@
             <a href="/dashboard" class="nav-link">Dashboard</a>
             <a href="/community" class="nav-link active">Community</a>
         </div>
+        <a href="/logout" style="text-decoration: none; font-size: 1.2rem;">🚪</a>
     </nav>
 
     <div class="main-container">
         <div class="chat-card">
             
-            <div style="padding: 15px; border-bottom: 1px solid #eee; background: #fff;">
+            <div style="padding: 15px; border-bottom: 1px solid #eee;">
                 <h3>Community Chat 
                     <span style="font-size: 0.8rem; color: var(--brand-green); background: #eafff3; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
                         ● Live
@@ -195,15 +195,9 @@
             <div class="messages-area" id="messagesArea">
                 <% if (typeof messages !== 'undefined' && messages.length > 0) { %>
                     <% messages.forEach(msg => { 
-                        // SAFETY FIX: Handle both new 'sender' and old 'username'
+                        // SAFETY: Handle 'sender' (New) or 'username' (Old)
                         let senderName = msg.sender || msg.username || "Unknown";
                         let isMe = (senderName === user.name);
-                        
-                        // Handle formatting timestamp from DB or String
-                        let displayTime = msg.time;
-                        if (!displayTime && msg.createdAt) {
-                            displayTime = new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-                        }
                     %>
                         <div class="message <%= isMe ? 'sent' : 'received' %>">
                             <div class="bubble"><%= msg.text %></div>
@@ -211,7 +205,7 @@
                                 <% if (!isMe) { %>
                                     <strong><%= senderName %></strong> • 
                                 <% } %>
-                                <span><%= displayTime || 'Just now' %></span>
+                                <span><%= msg.time || "Just now" %></span>
                             </div>
                         </div>
                     <% }); %>
@@ -230,80 +224,98 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-<script>
-    // --- 1. FORCE CONNECTION TO LIVE SERVER ---
-    // This is the magic fix for "Not Working on Phone"
-    let socketUrl = "/"; // Default (Web)
-    
-    // If running in Capacitor (App), force internet connection
-    if (window.Capacitor) {
-        socketUrl = "https://recover-ai-mobile.onrender.com"; 
-    }
-
-    const socket = io(socketUrl, {
-        transports: ['websocket', 'polling']
-    });
-
-    const messagesArea = document.getElementById("messagesArea");
-    const messageInput = document.getElementById("messageInput");
-    
-    // Get User Name from EJS
-    const MY_NAME = "<%= user.name %>";
-
-    // Auto-scroll
-    messagesArea.scrollTop = messagesArea.scrollHeight;
-
-    // --- SEND MESSAGE ---
-    function sendMessage() {
-        const text = messageInput.value.trim();
-        if (!text) return;
-
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-
-        // Emit exactly what the server expects
-        socket.emit("chat message", {
-            sender: MY_NAME,
-            text: text,
-            time: timeString
-        });
-
-        messageInput.value = "";
-    }
-
-    // --- RECEIVE MESSAGE ---
-    socket.on("chat message", (msg) => {
-        // Handle both old 'username' and new 'sender'
-        const sender = msg.sender || msg.username || "Unknown";
-        const isMe = (sender === MY_NAME);
-
-        const div = document.createElement("div");
-        div.className = `message ${isMe ? "sent" : "received"}`;
-
-        let senderHtml = "";
-        if (!isMe) {
-            senderHtml = `<span class="sender-name">${sender}</span>`;
+    <script>
+        // --- 1. FORCE CONNECTION TO LIVE SERVER ---
+        // This is the CRITICAL FIX for the mobile app
+        let socketUrl = "/"; // Default (Web Browser)
+        
+        // If running in Capacitor (Mobile App), force internet connection
+        if (window.Capacitor) {
+            socketUrl = "https://recover-ai-app.onrender.com"; 
         }
 
-        div.innerHTML = `
-            <div class="bubble">${msg.text}</div>
-            <div class="meta-info">
-                ${senderHtml}
-                <span class="timestamp">${msg.time || "Just now"}</span>
-            </div>
-        `;
+        // Connect
+        const socket = io(socketUrl, {
+            transports: ['websocket', 'polling']
+        });
 
-        messagesArea.appendChild(div);
+        const messagesArea = document.getElementById("messagesArea");
+        const messageInput = document.getElementById("messageInput");
+        
+        // Use the NAME (not ID) to match your new schema
+        const MY_NAME = "<%= user.name %>";
+
+        // Auto-scroll to bottom
         messagesArea.scrollTop = messagesArea.scrollHeight;
-    });
 
-    // Send on Enter
-    messageInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendMessage();
-    });
-</script>
+        // --- SEND MESSAGE ---
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            // Generate time string (e.g. "10:30 AM")
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+
+            // Emit using the Website Schema keys
+            socket.emit("chat message", {
+                sender: MY_NAME,
+                text: text,
+                time: timeString
+            });
+
+            messageInput.value = "";
+        }
+
+        // --- RECEIVE MESSAGE ---
+        socket.on("chat message", (msg) => {
+            // Check if I sent this message
+            const senderName = msg.sender || msg.username || "Unknown";
+            const isMe = (senderName === MY_NAME);
+
+            const div = document.createElement("div");
+            div.className = `message ${isMe ? "sent" : "received"}`;
+
+            let senderHtml = "";
+            if (!isMe) {
+                senderHtml = `<strong>${senderName}</strong> • `;
+            }
+
+            div.innerHTML = `
+                <div class="bubble">${msg.text}</div>
+                <div class="meta-info">
+                    ${senderHtml}
+                    <span>${msg.time || "Just now"}</span>
+                </div>
+            `;
+
+            messagesArea.appendChild(div);
+            // Scroll to bottom
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        });
+
+        // Send on Enter key
+        messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
+
+        // --- BACK BUTTON LOGIC (Mobile) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Capacitor) {
+                const { App } = Capacitor.Plugins;
+                App.addListener('backButton', async () => {
+                    const path = window.location.pathname;
+                    if (path === '/dashboard' || path === '/login' || path === '/') {
+                        App.exitApp();
+                    } else {
+                        window.history.back();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

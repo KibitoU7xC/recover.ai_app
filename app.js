@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
+const http = require("http");             // ✅ REQUIRED for Socket.io
+const socketIO = require('socket.io');    // ✅ REQUIRED for Socket.io
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
@@ -9,43 +11,85 @@ const multer = require("multer");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require("fs");
 const axios = require("axios");
-const cron = require("node-cron"); // Kept if you want to use it later, otherwise unused
 const twilio = require("twilio");
-
-// --- 1. SOCKET.IO IMPORTS ---
-const http = require("http");
-const { Server } = require("socket.io");
 
 // --- MODELS ---
 const userModel = require("./models/user");
 const Medication = require("./models/medication");
-// Add this near your other requires (userModel, etc.)
-const Message = require('./models/message');
+const Message = require('./models/message'); // ✅ Import Message Model
 
 // --- CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 const app = express();
 
-// --- 2. CREATE HTTP SERVER ---
+
+// --- 1. SERVER & SOCKET SETUP (The Critical Fix) ---
+// We create the HTTP server and attach Socket.io to it
 const server = http.createServer(app);
-const io = new Server(server);
 
-// --- 3. TRUST PROXY (Crucial for Render) ---
-app.set("trust proxy", 1);
+const io = socketIO(server, {
+    cors: {
+        origin: "*",  // 🟢 ALLOW ALL CONNECTIONS (Mobile App needs this)
+        methods: ["GET", "POST"]
+    }
+});
 
-// --- DATABASE CONNECTION ---
-mongoose
-  .connect(process.env.DB_URL)
-  .then(() => console.log("Database connected successfully"))
-  .catch((err) => console.log("Database connection error:", err));
 
-// --- MIDDLEWARE ---
+// --- 2. SOCKET LOGIC (Unified) ---
+io.on('connection', (socket) => {
+    console.log('📱 New Socket Connection: ' + socket.id);
+
+    socket.on('chat message', async (msg) => {
+        try {
+            console.log("📩 Received:", msg);
+
+            // 1. Prepare Data (Handle 'username' vs 'sender' mismatch)
+            const senderName = msg.sender || msg.username || "Anonymous";
+            
+            let timeString = msg.time;
+            if (!timeString) {
+                const now = new Date();
+                timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            // 2. Save to DB
+            const newMessage = new Message({
+                sender: senderName,
+                text: msg.text,
+                time: timeString,
+                createdAt: new Date()
+            });
+            await newMessage.save();
+
+            // 3. Broadcast to Everyone (App & Website)
+            io.emit('chat message', {
+                sender: senderName,
+                text: msg.text,
+                time: timeString
+            });
+            
+        } catch (err) {
+            console.error("❌ Socket Error:", err.message);
+        }
+    });
+});
+
+
+// --- 3. MIDDLEWARE ---
+app.set("trust proxy", 1); // Crucial for Render
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
+
+// --- DATABASE CONNECTION ---
+mongoose
+  .connect(process.env.DB_URL)
+  .then(() => console.log("✅ Database connected successfully"))
+  .catch((err) => console.log("❌ Database connection error:", err));
+
 
 // --- MULTER CONFIG ---
 const storage = multer.diskStorage({
@@ -55,7 +99,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- AUTH ROUTINES ---
+
+// --- AUTH ROUTES ---
 app.get("/", (req, res) => res.render("home"));
 app.get("/create", (req, res) => res.render("create"));
 
@@ -109,10 +154,7 @@ app.get("/logout", (req, res) => {
 function isloggedin(req, res, next) {
   if (!req.cookies || !req.cookies.token) return res.redirect("/login");
   try {
-    let data = jwt.verify(
-      req.cookies.token,
-      process.env.JWT_SECRET || "secretkey"
-    );
+    let data = jwt.verify(req.cookies.token, process.env.JWT_SECRET || "secretkey");
     req.user = data;
     next();
   } catch (err) {
@@ -120,7 +162,41 @@ function isloggedin(req, res, next) {
   }
 }
 
-// --- MEDICATION API ROUTES ---
+// --- APP ROUTES ---
+
+// Medication
+app.get("/medication", isloggedin, async (req, res) => {
+  const user = await userModel.findById(req.user.userid);
+  res.render("medication", { user });
+});
+
+app.get("/reminders", isloggedin, async (req, res) => {
+  const user = await userModel.findById(req.user.userid);
+  res.render("reminders", { user });
+});
+
+// Community Chat Page
+app.get("/community", isloggedin, async (req, res) => {
+  try {
+    const user = await userModel.findById(req.user.userid);
+    // Fetch all messages
+    const messages = await Message.find().sort({ createdAt: 1 });
+    res.render("community", { user: user, messages: messages });
+  } catch (error) {
+    console.error("Error loading community:", error);
+    res.redirect("/dashboard");
+  }
+});
+
+app.get("/food", isloggedin, async (req, res) => {
+  let user = await userModel.findOne({ _id: req.user.userid });
+  res.render("food", { user: user });
+});
+
+app.get("/chat_bot", (req, res) => res.render("chat_bot"));
+
+
+// --- API ROUTES (Medication) ---
 app.post("/add-reminder", isloggedin, async (req, res) => {
   const user = await userModel.findById(req.user.userid);
   const reminder = new Medication({
@@ -190,9 +266,7 @@ app.put("/reminders/:id", isloggedin, async (req, res) => {
       new: true,
     });
     if (!reminder)
-      return res
-        .status(404)
-        .json({ success: false, message: "Reminder not found" });
+      return res.status(404).json({ success: false, message: "Reminder not found" });
     res.json({ success: true, reminder });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -226,37 +300,7 @@ app.get("/check-reminders", async (req, res) => {
   res.json(data);
 });
 
-// --- PAGE ROUTES ---
-app.get("/medication", isloggedin, async (req, res) => {
-  const user = await userModel.findById(req.user.userid);
-  res.render("medication", { user });
-});
-
-app.get("/reminders", isloggedin, async (req, res) => {
-  const user = await userModel.findById(req.user.userid);
-  res.render("reminders", { user });
-});
-
-app.get("/food", isloggedin, async (req, res) => {
-  let user = await userModel.findOne({ _id: req.user.userid });
-  res.render("food", { user: user });
-});
-
-app.get("/community", isloggedin, async (req, res) => {
-  try {
-    const user = await userModel.findById(req.user.userid);
-    // Fetch all messages, sorted by oldest to newest
-    const messages = await Message.find().sort({ createdAt: 1 });
-    res.render("community", { user: user, messages: messages });
-  } catch (error) {
-    console.error("Error loading community:", error);
-    res.redirect("/dashboard");
-  }
-});
-
-app.get("/chat_bot", (req, res) => res.render("chat_bot"));
-
-// --- FOOD ANALYSIS ---
+// --- FOOD ANALYSIS API ---
 app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
   try {
     const file = req.file;
@@ -266,24 +310,11 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
 
     if (user.lastResetDate !== todayStr) {
       user.nutrition = {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fats: 0,
-        fiber: 0,
-        calcium: 0,
-        iron: 0,
-        zinc: 0,
-        magnesium: 0,
-        cholesterol: 0,
+        calories: 0, protein: 0, carbs: 0, fats: 0,
+        fiber: 0, calcium: 0, iron: 0, zinc: 0,
+        magnesium: 0, cholesterol: 0,
       };
-      user.meals = {
-        breakfast: null,
-        morningSnack: null,
-        lunch: null,
-        eveningSnack: null,
-        dinner: null,
-      };
+      user.meals = { breakfast: null, morningSnack: null, lunch: null, eveningSnack: null, dinner: null };
       user.lastResetDate = todayStr;
       await user.save();
     }
@@ -295,42 +326,37 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
     if (file) {
       parts.push({
         inlineData: {
-          data: Buffer.from(fs.readFileSync(path.resolve(file.path))).toString(
-            "base64"
-          ),
+          data: Buffer.from(fs.readFileSync(path.resolve(file.path))).toString("base64"),
           mimeType: file.mimetype,
         },
       });
     }
 
     const result = await model.generateContent(parts);
-    const cleanJson = result.response
-      .text()
-      .replace(/```json|```/g, "")
-      .trim();
+    const cleanJson = result.response.text().replace(/```json|```/g, "").trim();
     const foodData = JSON.parse(cleanJson);
 
     let updateQuery = {
-      $inc: {
-        "nutrition.calories": foodData.calories,
-        "nutrition.protein": foodData.macros.protein_g,
-        "nutrition.carbs": foodData.macros.carbs_g,
-        "nutrition.fats": foodData.macros.fats_g,
-        "nutrition.fiber": foodData.macros.fiber_g,
-        "nutrition.calcium": foodData.micros.calcium_mg,
-        "nutrition.iron": foodData.micros.iron_mg,
-        "nutrition.zinc": foodData.micros.zinc_mg,
-        "nutrition.magnesium": foodData.micros.magnesium_mg,
-        "nutrition.cholesterol": foodData.micros.cholesterol_mg,
-      },
+        $inc: {
+          "nutrition.calories": foodData.calories,
+          "nutrition.protein": foodData.macros.protein_g,
+          "nutrition.carbs": foodData.macros.carbs_g,
+          "nutrition.fats": foodData.macros.fats_g,
+          "nutrition.fiber": foodData.macros.fiber_g,
+          "nutrition.calcium": foodData.micros.calcium_mg,
+          "nutrition.iron": foodData.micros.iron_mg,
+          "nutrition.zinc": foodData.micros.zinc_mg,
+          "nutrition.magnesium": foodData.micros.magnesium_mg,
+          "nutrition.cholesterol": foodData.micros.cholesterol_mg,
+        },
     };
 
     if (mealType) {
-      updateQuery["$set"] = {};
-      updateQuery["$set"][`meals.${mealType}`] = {
-        name: foodData.food_name,
-        calories: foodData.calories,
-      };
+        updateQuery["$set"] = {};
+        updateQuery["$set"][`meals.${mealType}`] = {
+            name: foodData.food_name,
+            calories: foodData.calories,
+        };
     }
 
     await userModel.findByIdAndUpdate(req.user.userid, updateQuery);
@@ -341,6 +367,7 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
     res.status(500).json({ success: false, error: "Analysis failed." });
   }
 });
+
 
 // --- DASHBOARD ROUTE (ONE PARTICULAR DAY | IST ONLY) ---
 app.get("/dashboard", isloggedin, async (req, res) => {
@@ -514,6 +541,7 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 
+
 // --- ANDROID VERIFICATION ROUTE ---
 app.get("/.well-known/assetlinks.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
@@ -521,39 +549,11 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
 });
 
 
-
-io.on('connection', (socket) => {
-    console.log('A user connected');
-
-    socket.on('chat message', async (msg) => {
-        try {
-            console.log("Received:", msg);
-
-            // 1. Create Message using the NEW Schema
-            const newMessage = new Message({
-                sender: msg.sender,  // Used to be 'username', now it's 'sender'
-                text: msg.text,
-                time: msg.time,
-                createdAt: new Date()
-            });
-
-            // 2. Save to DB
-            await newMessage.save();
-            console.log("Saved to DB!");
-
-            // 3. Send back to all users
-            io.emit('chat message', msg);
-
-        } catch (err) {
-            console.error("❌ Save Error:", err);
-        }
-    });
-});
-
-// --- 4. START SERVER (Corrected Port) ---
-// Use the port Render gives us, or 3000 if we are on localhost
+// --- 4. START SERVER (THE FINAL FIX) ---
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
+// 🛑 DO NOT use app.listen()
+// ✅ USE server.listen() so Socket.io attaches correctly
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
 });
