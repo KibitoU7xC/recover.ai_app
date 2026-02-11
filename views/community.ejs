@@ -230,100 +230,80 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // 👇 Only use the empty io() if we are on a website. 
-// 👇 If we are on the App, we MUST point to the live server URL!
+<script>
+    // --- 1. FORCE CONNECTION TO LIVE SERVER ---
+    // This is the magic fix for "Not Working on Phone"
+    let socketUrl = "/"; // Default (Web)
+    
+    // If running in Capacitor (App), force internet connection
+    if (window.Capacitor) {
+        socketUrl = "https://recover-ai-mobile.onrender.com"; 
+    }
 
-let socketUrl = "/"; // Default for website
+    const socket = io(socketUrl, {
+        transports: ['websocket', 'polling']
+    });
 
-// Detect if running inside the Mobile App
-if (window.Capacitor) {
-    socketUrl = "https://recover-ai-mobile.onrender.com"; 
-}
+    const messagesArea = document.getElementById("messagesArea");
+    const messageInput = document.getElementById("messageInput");
+    
+    // Get User Name from EJS
+    const MY_NAME = "<%= user.name %>";
 
-const socket = io(socketUrl, {
-    transports: ['websocket', 'polling'] // Force connection methods that work on mobile
-});
-        const messagesArea = document.getElementById("messagesArea");
-        const messageInput = document.getElementById("messageInput");
+    // Auto-scroll
+    messagesArea.scrollTop = messagesArea.scrollHeight;
 
-        // ✅ IMPORTANT: Store the current user's name for logic
-        const MY_NAME = "<%= user.name %>";
+    // --- SEND MESSAGE ---
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
 
-        // Auto-scroll to bottom on load
-        messagesArea.scrollTop = messagesArea.scrollHeight;
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
 
-        // --- SEND MESSAGE FUNCTION ---
-        function sendMessage() {
-            const text = messageInput.value.trim();
-            if (!text) return;
+        // Emit exactly what the server expects
+        socket.emit("chat message", {
+            sender: MY_NAME,
+            text: text,
+            time: timeString
+        });
 
-            // Create formatted time string (e.g., "10:30 AM")
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
+        messageInput.value = "";
+    }
 
-            // Emit to server matching the Website Schema
-            socket.emit("chat message", {
-                sender: MY_NAME,  // Used to be 'username', now 'sender'
-                text: text,
-                time: timeString
-            });
+    // --- RECEIVE MESSAGE ---
+    socket.on("chat message", (msg) => {
+        // Handle both old 'username' and new 'sender'
+        const sender = msg.sender || msg.username || "Unknown";
+        const isMe = (sender === MY_NAME);
 
-            messageInput.value = "";
+        const div = document.createElement("div");
+        div.className = `message ${isMe ? "sent" : "received"}`;
+
+        let senderHtml = "";
+        if (!isMe) {
+            senderHtml = `<span class="sender-name">${sender}</span>`;
         }
 
-        // --- RECEIVE MESSAGE FUNCTION ---
-        socket.on("chat message", (msg) => {
-            // Determine if I sent this message
-            // We check msg.sender OR msg.username to be safe
-            const senderName = msg.sender || msg.username || "Unknown";
-            const isMe = (senderName === MY_NAME);
+        div.innerHTML = `
+            <div class="bubble">${msg.text}</div>
+            <div class="meta-info">
+                ${senderHtml}
+                <span class="timestamp">${msg.time || "Just now"}</span>
+            </div>
+        `;
 
-            const div = document.createElement("div");
-            div.className = `message ${isMe ? "sent" : "received"}`;
+        messagesArea.appendChild(div);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+    });
 
-            let senderHtml = "";
-            if (!isMe) {
-                senderHtml = `<strong>${senderName}</strong> • `;
-            }
-
-            div.innerHTML = `
-                <div class="bubble">${msg.text}</div>
-                <div class="meta-info">
-                    ${senderHtml}
-                    <span>${msg.time || "Just now"}</span>
-                </div>
-            `;
-
-            messagesArea.appendChild(div);
-            // Scroll to bottom
-            messagesArea.scrollTop = messagesArea.scrollHeight;
-        });
-
-        // Send on Enter key
-        messageInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") sendMessage();
-        });
-
-        // --- CAPACITOR MOBILE BACK BUTTON ---
-        // This prevents the app from closing when pressing back in chat
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.Capacitor) {
-                const { App } = Capacitor.Plugins;
-                App.addListener('backButton', async () => {
-                    const path = window.location.pathname;
-                    // Only exit app on main pages
-                    if (path === '/dashboard' || path === '/login' || path === '/') {
-                        App.exitApp();
-                    } else {
-                        window.history.back();
-                    }
-                });
-            }
-        });
-    </script>
+    // Send on Enter
+    messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+</script>
 </body>
 </html>
