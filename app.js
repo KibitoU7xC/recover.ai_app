@@ -520,48 +520,36 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
   res.sendFile(__dirname + "/public/assetlinks.json");
 });
 
-// --- SOCKET.IO LOGIC (Place this near the bottom of app.js) ---
 
-// --- SOCKET IO (Chat Logic) ---
 
 io.on('connection', (socket) => {
     console.log('A user connected');
 
-    // Listen for 'chat message' event from the App Frontend
     socket.on('chat message', async (msg) => {
         try {
-            // DEBUG: Log what the frontend sent
-            console.log("Received message:", msg);
+            console.log("Received:", msg);
 
-            // 1. Create a new Message document using the WEBSITE Schema
-            // The frontend now sends: { sender, text, time }
+            // 1. Create Message using the NEW Schema
             const newMessage = new Message({
-                sender: msg.sender,  // This matches the website schema
+                sender: msg.sender,  // Used to be 'username', now it's 'sender'
                 text: msg.text,
-                time: msg.time,      // e.g. "10:30 AM"
+                time: msg.time,
                 createdAt: new Date()
             });
 
-            // 2. Save it to MongoDB
+            // 2. Save to DB
             await newMessage.save();
-            console.log("Message saved to DB");
+            console.log("Saved to DB!");
 
-            // 3. Broadcast it to everyone (including the website users)
-            io.emit('chat message', {
-                sender: msg.sender,
-                text: msg.text,
-                time: msg.time
-            });
+            // 3. Send back to all users
+            io.emit('chat message', msg);
 
         } catch (err) {
-            console.error("❌ Error processing message:", err);
+            console.error("❌ Save Error:", err);
         }
     });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected');
-    });
 });
+
 // --- 4. START SERVER (Corrected Port) ---
 // Use the port Render gives us, or 3000 if we are on localhost
 const PORT = process.env.PORT || 3000;
