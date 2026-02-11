@@ -19,7 +19,8 @@ const { Server } = require("socket.io");
 // --- MODELS ---
 const userModel = require("./models/user");
 const Medication = require("./models/medication");
-const Message = require("./models/message");
+// Add this near your other requires (userModel, etc.)
+const Message = require('./models/message');
 
 // --- CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -519,39 +520,48 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
   res.sendFile(__dirname + "/public/assetlinks.json");
 });
 
-// --- 3. SOCKET.IO CONNECTION HANDLER ---
-io.on("connection", (socket) => {
-  console.log("A user connected to community chat");
+// --- SOCKET.IO LOGIC (Place this near the bottom of app.js) ---
 
-  // Listen for 'chat message' from client
-  socket.on("chat message", async (msg) => {
-  try {
-    const newMessage = new Message({
-      userid: msg.userid,       // ✅ USE USERID
-      username: msg.username,   // ✅ USE USERNAME
-      text: msg.text,
+// --- SOCKET IO (Chat Logic) ---
+
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    // Listen for 'chat message' event from the App Frontend
+    socket.on('chat message', async (msg) => {
+        try {
+            // DEBUG: Log what the frontend sent
+            console.log("Received message:", msg);
+
+            // 1. Create a new Message document using the WEBSITE Schema
+            // The frontend now sends: { sender, text, time }
+            const newMessage = new Message({
+                sender: msg.sender,  // This matches the website schema
+                text: msg.text,
+                time: msg.time,      // e.g. "10:30 AM"
+                createdAt: new Date()
+            });
+
+            // 2. Save it to MongoDB
+            await newMessage.save();
+            console.log("Message saved to DB");
+
+            // 3. Broadcast it to everyone (including the website users)
+            io.emit('chat message', {
+                sender: msg.sender,
+                text: msg.text,
+                time: msg.time
+            });
+
+        } catch (err) {
+            console.error("❌ Error processing message:", err);
+        }
     });
 
-    await newMessage.save();
-
-    // Broadcast saved message (with createdAt)
-    io.emit("chat message", {
-      userid: newMessage.userid.toString(),
-      username: newMessage.username,
-      text: newMessage.text,
-      createdAt: newMessage.createdAt,
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
     });
-  } catch (err) {
-    console.error("Message save error:", err);
-  }
 });
-
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-  });
-});
-
 // --- 4. START SERVER (Corrected Port) ---
 // Use the port Render gives us, or 3000 if we are on localhost
 const PORT = process.env.PORT || 3000;
