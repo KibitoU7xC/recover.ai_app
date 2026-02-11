@@ -213,84 +213,65 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // --- 1. FORCE CONNECTION TO LIVE SERVER ---
-        // This is the CRITICAL FIX for the mobile app
-        let socketUrl = "/"; // Default (Web Browser)
-        
-        // If running in Capacitor (Mobile App), force internet connection
-        if (window.Capacitor) {
-            socketUrl = "https://recover-ai-app.onrender.com"; 
-        }
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    // 1. URL Detection Logic
+    let socketUrl = "/"; // Default for Browser/Localhost
 
-        // Connect
-        const socket = io(socketUrl, {
-            transports: ['websocket', 'polling']
+    // 2. CRITICAL FIX: If running inside the Mobile App, point to Render
+    if (window.Capacitor) {
+        socketUrl = "https://recover-ai-mobile.onrender.com/"; 
+    }
+
+    // 3. Connect with CORS and Mobile compatibility
+    const socket = io(socketUrl, {
+        transports: ['websocket', 'polling']
+    });
+
+    const messagesArea = document.getElementById("messagesArea");
+    const messageInput = document.getElementById("messageInput");
+    const MY_NAME = "<%= user.name %>"; //
+
+    // Send Message Function
+    function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Emit using the schema keys: sender, text, time
+        socket.emit("chat message", {
+            sender: MY_NAME,
+            text: text,
+            time: timeString
         });
 
-        const messagesArea = document.getElementById("messagesArea");
-        const messageInput = document.getElementById("messageInput");
-        
-        // Use the NAME (not ID) to match your new schema
-        const MY_NAME = "<%= user.name %>";
+        messageInput.value = "";
+    }
 
-        // Auto-scroll to bottom
+    // Receive Message Logic
+    socket.on("chat message", (msg) => {
+        const isMe = (msg.sender === MY_NAME);
+        const div = document.createElement("div");
+        div.className = `message ${isMe ? "sent" : "received"}`;
+        
+        div.innerHTML = `
+            <div class="bubble">${msg.text}</div>
+            <div class="meta-info">
+                <span>${msg.sender}</span> • <span>${msg.time}</span>
+            </div>
+        `;
+
+        messagesArea.appendChild(div);
         messagesArea.scrollTop = messagesArea.scrollHeight;
+    });
 
-        // --- SEND MESSAGE ---
-        function sendMessage() {
-            const text = messageInput.value.trim();
-            if (!text) return;
+    // Send on Enter
+    messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
 
-            // Generate time string (e.g. "10:30 AM")
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-
-            // Emit using the Website Schema keys
-            socket.emit("chat message", {
-                sender: MY_NAME,
-                text: text,
-                time: timeString
-            });
-
-            messageInput.value = "";
-        }
-
-        // --- RECEIVE MESSAGE ---
-        socket.on("chat message", (msg) => {
-            // Check if I sent this message
-            const senderName = msg.sender || msg.username || "Unknown";
-            const isMe = (senderName === MY_NAME);
-
-            const div = document.createElement("div");
-            div.className = `message ${isMe ? "sent" : "received"}`;
-
-            let senderHtml = "";
-            if (!isMe) {
-                senderHtml = `<strong>${senderName}</strong> • `;
-            }
-
-            div.innerHTML = `
-                <div class="bubble">${msg.text}</div>
-                <div class="meta-info">
-                    ${senderHtml}
-                    <span>${msg.time || "Just now"}</span>
-                </div>
-            `;
-
-            messagesArea.appendChild(div);
-            // Scroll to bottom
-            messagesArea.scrollTop = messagesArea.scrollHeight;
-        });
-
-        // Send on Enter key
-        messageInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") sendMessage();
-        });
 
         // --- BACK BUTTON LOGIC (Mobile) ---
         document.addEventListener('DOMContentLoaded', () => {
