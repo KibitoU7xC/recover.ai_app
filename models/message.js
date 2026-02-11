@@ -1,16 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const messageSchema = mongoose.Schema({
-    userid: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user'
-    },
-    username: String,
-    text: String,
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+const messageSchema = new mongoose.Schema({
+  sender: String, // Name of the person (instead of userid)
+  text: String,   // The message content
+  time: String,   // String timestamp (e.g. "10:05 AM")
+  createdAt: { type: Date, default: Date.now }, // For sorting
 });
 
-module.exports = mongoose.model('message', messageSchema);
+module.exports = mongoose.model("Message", messageSchema);

@@ -18,7 +18,7 @@
         .nav-link { text-decoration: none; color: var(--text-light); font-size: 0.9rem; }
         .nav-link.active { color: var(--text-dark); font-weight: 600; border-bottom: 2px solid var(--brand-green); }
         
-        @media (max-width: 768px) { .nav-links { display: none; } } /* Hide nav on mobile if you have bottom nav */
+        @media (max-width: 768px) { .nav-links { display: none; } }
 
         /* CHAT CONTAINER */
         .main-container { flex: 1; max-width: 800px; margin: 0 auto; width: 100%; padding: 1rem; display: flex; flex-direction: column; }
@@ -27,6 +27,8 @@
         /* MESSAGES AREA */
         .messages-area { flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fcfcfc; }
         .message { max-width: 75%; display: flex; flex-direction: column; }
+        
+        /* ALIGNMENT: Check 'sender' name instead of ID */
         .message.sent { align-self: flex-end; align-items: flex-end; }
         .message.received { align-self: flex-start; }
         
@@ -58,22 +60,17 @@
             </div>
 
             <div class="messages-area" id="messagesArea">
-                <% if (messages && messages.length > 0) { %>
+                <% if (typeof messages !== 'undefined' && messages.length > 0) { %>
                     <% messages.forEach(msg => { %>
-                        <div class="message <%= (msg.userid && msg.userid.toString() === user._id.toString()) ? 'sent' : 'received' %>">
-
-    <div class="bubble"><%= msg.text %></div>
-    <div class="meta-info">
-        <span><%= msg.username %></span> • 
-        <span>
-          <%= new Date(msg.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-          }) %>
-        </span>
-    </div>
-</div>
-
+                        <div class="message <%= msg.sender === user.name ? 'sent' : 'received' %>">
+                            <div class="bubble"><%= msg.text %></div>
+                            <div class="meta-info">
+                                <% if (msg.sender !== user.name) { %>
+                                    <span><%= msg.sender %></span> • 
+                                <% } %>
+                                <span><%= msg.time %></span>
+                            </div>
+                        </div>
                     <% }); %>
                 <% } else { %>
                     <div style="text-align: center; color: #ccc; margin-top: 20px;">No messages yet. Say hi! 👋</div>
@@ -89,49 +86,54 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  const socket = io(); // Connect to server
+  const socket = io();
   const messagesArea = document.getElementById("messagesArea");
   const messageInput = document.getElementById("messageInput");
 
-  // ✅ DEFINE THESE (YOU MISSED THIS TOO)
-  const MY_USER_ID = "<%= user._id %>";
+  // ✅ UPDATED: We use NAME, not ID, to match the website
   const MY_NAME = "<%= user.name %>";
 
-  // Auto-scroll to bottom
   messagesArea.scrollTop = messagesArea.scrollHeight;
 
-  // ✅ SEND MESSAGE FUNCTION (PROPERLY CLOSED)
+  // ✅ UPDATED: Send Message in Website Format
   function sendMessage() {
     const text = messageInput.value.trim();
     if (!text) return;
 
+    // Create the Time String (e.g., "10:30 AM")
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
     socket.emit("chat message", {
-      userid: MY_USER_ID,
-      username: MY_NAME,
+      sender: MY_NAME,  // Send 'sender' instead of 'username'
       text: text,
+      time: timeString  // Send formatted time
     });
 
     messageInput.value = "";
   }
 
-  // ✅ VERY IMPORTANT (so button onclick works)
-  window.sendMessage = sendMessage;
-
-  // Receive messages
+  // ✅ UPDATED: Receive Message
   socket.on("chat message", (msg) => {
-    const isMe = msg.userid === MY_USER_ID;
+    // Compare Names, not IDs
+    const isMe = msg.sender === MY_NAME;
 
     const div = document.createElement("div");
     div.className = `message ${isMe ? "sent" : "received"}`;
 
+    let senderHtml = "";
+    if (!isMe) {
+        senderHtml = `<span>${msg.sender}</span> • `;
+    }
+
     div.innerHTML = `
       <div class="bubble">${msg.text}</div>
       <div class="meta-info">
-        <span>${msg.username}</span> • 
-        <span>${new Date(msg.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}</span>
+        ${senderHtml}
+        <span>${msg.time}</span>
       </div>
     `;
 
@@ -145,22 +147,16 @@
   });
 </script>
 
-    <script>
+<script>
+    // Capacitor Back Button Logic (Kept from your original code)
     document.addEventListener('DOMContentLoaded', () => {
-        // Check if running in Capacitor App
         if (window.Capacitor) {
             const { App } = Capacitor.Plugins;
-
             App.addListener('backButton', async () => {
-                // Get the current page path (e.g., "/dashboard", "/food")
                 const path = window.location.pathname;
-
-                // LIST OF PAGES WHERE BACK BUTTON SHOULD CLOSE THE APP
-                // usually Login and Dashboard are the "Home" pages
                 if (path === '/dashboard' || path === '/login' || path === '/') {
                     App.exitApp();
                 } else {
-                    // For any other page (Food, Community, Chat), go back!
                     window.history.back();
                 }
             });
