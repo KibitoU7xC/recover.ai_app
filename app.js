@@ -305,20 +305,32 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
   try {
     const file = req.file;
     const mealType = req.body.mealType;
-    const todayStr = new Date().toISOString().split("T")[0];
+    
+    // Note: This uses UTC time. If you need local timezone resets, you may need a timezone library like moment-timezone.
+    const todayStr = new Date().toISOString().split("T")[0]; 
+    
+    // 1. Fetch the user once
     let user = await userModel.findById(req.user.userid);
 
+    // 2. DAILY RESET LOGIC (Handled purely in memory)
     if (user.lastResetDate !== todayStr) {
       user.nutrition = {
         calories: 0, protein: 0, carbs: 0, fats: 0,
         fiber: 0, calcium: 0, iron: 0, zinc: 0,
         magnesium: 0, cholesterol: 0,
       };
-      user.meals = { breakfast: null, morningSnack: null, lunch: null, eveningSnack: null, dinner: null };
+      // Fix: Set back to schema default structure instead of null
+      user.meals = { 
+        breakfast: { name: "", calories: 0 }, 
+        morningSnack: { name: "", calories: 0 }, 
+        lunch: { name: "", calories: 0 }, 
+        eveningSnack: { name: "", calories: 0 }, 
+        dinner: { name: "", calories: 0 } 
+      };
       user.lastResetDate = todayStr;
-      await user.save();
     }
 
+    // 3. AI ANALYSIS
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `Analyze this food image. Return a pure JSON object: { "food_name": "Short Name", "calories": 0, "macros": { "protein_g": 0, "carbs_g": 0, "fats_g": 0, "fiber_g": 0 }, "micros": { "calcium_mg": 0, "iron_mg": 0, "zinc_mg": 0, "magnesium_mg": 0, "cholesterol_mg": 0 } }`;
 
@@ -336,32 +348,33 @@ app.post("/analyze", upload.single("report"), isloggedin, async (req, res) => {
     const cleanJson = result.response.text().replace(/```json|```/g, "").trim();
     const foodData = JSON.parse(cleanJson);
 
-    let updateQuery = {
-        $inc: {
-          "nutrition.calories": foodData.calories,
-          "nutrition.protein": foodData.macros.protein_g,
-          "nutrition.carbs": foodData.macros.carbs_g,
-          "nutrition.fats": foodData.macros.fats_g,
-          "nutrition.fiber": foodData.macros.fiber_g,
-          "nutrition.calcium": foodData.micros.calcium_mg,
-          "nutrition.iron": foodData.micros.iron_mg,
-          "nutrition.zinc": foodData.micros.zinc_mg,
-          "nutrition.magnesium": foodData.micros.magnesium_mg,
-          "nutrition.cholesterol": foodData.micros.cholesterol_mg,
-        },
-    };
+    // 4. APPLY NEW FOOD DATA
+    // Instead of findByIdAndUpdate, we just add the values to the user object we already have
+    user.nutrition.calories += foodData.calories;
+    user.nutrition.protein += foodData.macros.protein_g;
+    user.nutrition.carbs += foodData.macros.carbs_g;
+    user.nutrition.fats += foodData.macros.fats_g;
+    user.nutrition.fiber += foodData.macros.fiber_g;
+    user.nutrition.calcium += foodData.micros.calcium_mg;
+    user.nutrition.iron += foodData.micros.iron_mg;
+    user.nutrition.zinc += foodData.micros.zinc_mg;
+    user.nutrition.magnesium += foodData.micros.magnesium_mg;
+    user.nutrition.cholesterol += foodData.micros.cholesterol_mg;
 
+    // Update the specific meal slot
     if (mealType) {
-        updateQuery["$set"] = {};
-        updateQuery["$set"][`meals.${mealType}`] = {
-            name: foodData.food_name,
-            calories: foodData.calories,
-        };
+      user.meals[mealType] = {
+        name: foodData.food_name,
+        calories: foodData.calories,
+      };
     }
 
-    await userModel.findByIdAndUpdate(req.user.userid, updateQuery);
+    // 5. SAVE EVERYTHING AT ONCE
+    await user.save();
+
     if (file) fs.unlinkSync(file.path);
     res.json({ success: true, data: foodData });
+
   } catch (error) {
     console.error("Analysis Error:", error);
     res.status(500).json({ success: false, error: "Analysis failed." });
