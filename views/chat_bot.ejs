@@ -150,7 +150,7 @@
         </div>
 
         <form class="input-area" id="chatForm">
-            <input type="file" id="fileInput" name="image" accept="image/*" style="display: none;" onchange="handleFileSelect()">
+            <input type="file" id="fileInput" name="file" accept="image/*,application/pdf" style="display: none;" onchange="handleFileSelect()">
             
             <label for="fileInput" class="attach-btn"><i class="fas fa-paperclip"></i></label>
             <input type="text" class="chat-input" id="userInput" placeholder="Message Doctor Brain..." autocomplete="off">
@@ -228,7 +228,8 @@
             const formData = new FormData();
             formData.append("query", text || "Analyze this image"); // API expects 'query'
             if (file) {
-                formData.append("image", file);
+                // Send as 'file' instead of 'image' so Python knows it can be anything
+                formData.append("file", file); 
             }
 
             try {
