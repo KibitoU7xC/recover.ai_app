@@ -58,7 +58,10 @@ const userSchema = new mongoose.Schema({
             name: { type: String, default: "" },
             calories: { type: Number, default: 0 }
         }
-    }
+    },
+    googleFitToken: {
+    type: String,
+    default: null
 });
 
 module.exports = mongoose.model('user', userSchema);
