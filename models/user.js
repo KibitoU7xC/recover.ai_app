@@ -60,8 +60,9 @@ const userSchema = new mongoose.Schema({
         }
     },
     googleFitToken: {
-    type: String,
-    default: null
+        type: String,
+        default: null
+    }
 });
 
 module.exports = mongoose.model('user', userSchema);
